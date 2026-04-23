@@ -9,6 +9,8 @@ import contaReceberRoutes from "./routes/contaReceberRoutes.js"
 import alertaRoutes from "./routes/alertaRoutes.js"
 import usuarioRoutes from "./routes/usuarioRoutes.js"
 import servicoRoutes from "./routes/servicoRoutes.js"
+import produtoRoutes from "./routes/produtoRoutes.js"
+import vendaRoutes from "./routes/vendaRoutes.js"
 
 const app = express() 
 
@@ -23,6 +25,8 @@ contaReceberRoutes(app)
 alertaRoutes(app)
 usuarioRoutes(app)
 servicoRoutes (app)
+produtoRoutes(app)
+vendaRoutes(app)
 
 //  rota de teste
 app.get("/teste", auth, (req, res) => {

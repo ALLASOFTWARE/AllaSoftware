@@ -91,3 +91,43 @@ model Servico {
   empresaId Int
   createdAt DateTime  @default(now())
 }
+
+model Produto {
+  id            Int      @id @default(autoincrement())
+  nome          String
+  descricao     String?
+  precoVarejo   Float
+  precoAtacado  Float?
+  estoque       Int?     
+  status        String   @default("ativo")
+  empresaId     Int
+  createdAt     DateTime @default(now())
+}
+
+model Venda {
+  id          Int         @id @default(autoincrement())
+  clienteId   Int?
+  empresaId   Int
+  tipoPreco   String      @default("varejo")
+  desconto    Float       @default(0)
+  totalBruto  Float
+  totalFinal  Float
+  status      String      @default("fechada")
+  createdAt   DateTime    @default(now())
+
+  itens       ItemVenda[]
+}
+
+model ItemVenda {
+  id            Int      @id @default(autoincrement())
+  vendaId       Int
+  tipoItem      String
+  referenciaId  Int
+  nomeItem      String
+  quantidade    Int      @default(1)
+  precoUnitario Float
+  subtotal      Float
+  createdAt     DateTime @default(now())
+
+  venda         Venda    @relation(fields: [vendaId], references: [id], onDelete: Cascade)
+}
