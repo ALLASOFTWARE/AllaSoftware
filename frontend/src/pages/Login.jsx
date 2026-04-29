@@ -37,7 +37,7 @@ export default function Login() {
         className="bg-white p-8 rounded-2xl shadow-md w-full max-w-sm"
       >
         <h1 className="text-2xl font-bold text-center text-[#2D2E47] mb-6">
-          Entrar no sistema
+          Sistema ALLA
         </h1>
 
         <div className="mb-4">
