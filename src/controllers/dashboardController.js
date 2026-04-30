@@ -226,3 +226,58 @@ export const dashboardFinanceiro = async (req, res) => {
     })
   }
 }
+
+export const dashboardCobrancas = async (req, res) => {
+  try {
+    const contas = await prisma.contaReceber.findMany({
+      where: {
+        empresaId: req.empresaId
+      }
+    })
+
+    const contasPendentes = contas.filter(
+      (conta) => conta.status === "pendente"
+    ).length
+
+    const contasParciais = contas.filter(
+      (conta) => conta.status === "parcial"
+    ).length
+
+    const contasPagas = contas.filter(
+      (conta) => conta.status === "pago"
+    ).length
+
+    const contasVencidas = contas.filter(
+      (conta) => conta.status === "vencido"
+    ).length
+
+    const totalEmAberto = contas
+      .filter((conta) =>
+        ["pendente", "parcial", "vencido"].includes(conta.status)
+      )
+      .reduce((total, conta) => {
+        return total + (Number(conta.valorTotal || 0) - Number(conta.valorPago || 0))
+      }, 0)
+
+    const totalVencido = contas
+      .filter((conta) => conta.status === "vencido")
+      .reduce((total, conta) => {
+        return total + (Number(conta.valorTotal || 0) - Number(conta.valorPago || 0))
+      }, 0)
+
+    res.json({
+      contasPendentes,
+      contasParciais,
+      contasPagas,
+      contasVencidas,
+      totalEmAberto,
+      totalVencido
+    })
+  } catch (error) {
+    console.error("Erro ao carregar dashboard de cobranças:", error)
+
+    res.status(500).json({
+      error: "Erro ao carregar dashboard de cobranças"
+    })
+  }
+}
