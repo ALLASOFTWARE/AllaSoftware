@@ -16,6 +16,7 @@ export default function Clientes() {
   const [mostrarNovoModal, setMostrarNovoModal] = useState(false)
   const [mostrarEditarModal, setMostrarEditarModal] = useState(false)
   const [mostrarModalConfirmacao, setMostrarModalConfirmacao] = useState(false)
+  const [mostrarModalSimples, setMostrarModalSimples] = useState(false)
   const [senhaConfirmacao, setSenhaConfirmacao] = useState("")
   const [clienteParaDeletar, setClienteParaDeletar] = useState(null)
   const [mensagemConfirmacao, setMensagemConfirmacao] = useState("")
@@ -139,18 +140,22 @@ export default function Clientes() {
   }
 
   const excluirCliente = async (id, nome) => {
-    // const confirmar = window.confirm(`Deseja excluir o cliente "${nome}"?`)
-    // if (!confirmar) return
+    setClienteParaDeletar({ id, nome })
+    setMostrarModalSimples(true)
+  }
 
+  const confirmarExclusaoSimples = async () => {
     try {
-      await api.delete(`/clientes/${id}`)
+      await api.delete(`/clientes/${clienteParaDeletar.id}`)
+      setMostrarModalSimples(false)
+      setClienteParaDeletar(null)
       carregarClientes()
     } catch (error) {
       const dados = error.response?.data || {}
       
-      // Se tem contas pendentes, pedir confirmação com senha
+      // Se tem contas pendentes, fechar modal simples e abrir com senha
       if (dados.temContasPendentes) {
-        setClienteParaDeletar({ id, nome })
+        setMostrarModalSimples(false)
         setMensagemConfirmacao(dados.mensagem || "Este cliente tem contas pendentes. Digite sua senha para confirmar a exclusão.")
         setMostrarModalConfirmacao(true)
       } else {
@@ -616,7 +621,48 @@ export default function Clientes() {
         </Modal>
       )}
 
-      {/* Modal Confirmação com Senha */}
+      {/* Modal Confirmação Simples (sem contas pendentes) */}
+      {mostrarModalSimples && (
+        <Modal
+          titulo="Confirmar exclusão"
+          onClose={() => {
+            setMostrarModalSimples(false)
+            setClienteParaDeletar(null)
+          }}
+        >
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              Tem certeza que deseja excluir o cliente <strong>{clienteParaDeletar?.nome}</strong>?
+            </p>
+            <p className="text-sm text-gray-500">
+              Esta ação não pode ser desfeita.
+            </p>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setMostrarModalSimples(false)
+                  setClienteParaDeletar(null)
+                }}
+                className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={confirmarExclusaoSimples}
+                className="px-5 py-2.5 rounded-xl bg-red-600 text-white hover:opacity-90"
+              >
+                Excluir cliente
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal Confirmação com Senha (com contas pendentes) */}
       {mostrarModalConfirmacao && (
         <Modal
           titulo="Confirmar exclusão"
