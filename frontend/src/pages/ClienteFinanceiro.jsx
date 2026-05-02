@@ -9,6 +9,14 @@ export default function ClienteFinanceiro() {
 
   const [dados, setDados] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [mostrarPagamentoModal, setMostrarPagamentoModal] = useState(false)
+  const [contaSelecionada, setContaSelecionada] = useState(null)
+
+  const [pagamento, setPagamento] = useState({
+    valor: "",
+    formaPagamento: "",
+    descricao: ""
+  })
 
   useEffect(() => {
     carregarDados()
@@ -85,6 +93,52 @@ export default function ClienteFinanceiro() {
 
   const ultimoPagamento = pagamentos?.[0]
 
+  const abrirPagamento = (conta) => {
+  const saldo = Number(conta.valorTotal || 0) - Number(conta.valorPago || 0)
+
+  setContaSelecionada(conta)
+  setPagamento({
+    valor: saldo > 0 ? String(saldo) : "",
+    formaPagamento: "",
+    descricao: `Pagamento da ${conta.descricao || `conta #${conta.id}`}`
+  })
+
+  setMostrarPagamentoModal(true)
+}
+
+const registrarPagamento = async (e) => {
+  e.preventDefault()
+
+  if (!contaSelecionada) return
+
+  if (!pagamento.valor || Number(pagamento.valor) <= 0) {
+    alert("Informe um valor de pagamento válido.")
+    return
+  }
+
+  try {
+    await api.post(`/contas-receber/${contaSelecionada.id}/pagamentos`, {
+      valor: Number(pagamento.valor),
+      formaPagamento: pagamento.formaPagamento || null,
+      descricao: pagamento.descricao || null
+    })
+
+    setPagamento({
+      valor: "",
+      formaPagamento: "",
+      descricao: ""
+    })
+
+    setContaSelecionada(null)
+    setMostrarPagamentoModal(false)
+
+    carregarDados()
+  } catch (error) {
+    console.error("Erro ao registrar pagamento:", error)
+    alert(error.response?.data?.error || "Erro ao registrar pagamento")
+  }
+}
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -157,18 +211,31 @@ export default function ClienteFinanceiro() {
                       </p>
                     </div>
 
-                    <div className="flex flex-wrap gap-2 text-sm">
-                      <Badge texto={conta.status} />
-                      <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-600">
-                        Total: {formatarMoeda(conta.valorTotal)}
-                      </span>
-                      <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">
-                        Pago: {formatarMoeda(conta.valorPago)}
-                      </span>
-                      <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-700">
-                        Saldo: {formatarMoeda(saldo)}
-                      </span>
-                    </div>
+                    <div className="flex flex-wrap gap-2 text-sm items-center">
+                    <Badge texto={conta.status} />
+
+                    <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-600">
+                      Total: {formatarMoeda(conta.valorTotal)}
+                    </span>
+
+                    <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">
+                      Pago: {formatarMoeda(conta.valorPago)}
+                    </span>
+
+                    <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-700">
+                      Saldo: {formatarMoeda(saldo)}
+                    </span>
+
+                    {saldo > 0 && conta.status !== "pago" && (
+                      <button
+                        type="button"
+                        onClick={() => abrirPagamento(conta)}
+                        className="px-4 py-1.5 rounded-full bg-[#2F8AA3] text-white text-sm font-medium hover:opacity-90"
+                      >
+                        Pagar débito
+                      </button>
+                    )}
+                  </div>
                   </div>
 
                   <div className="p-5 grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -312,6 +379,90 @@ export default function ClienteFinanceiro() {
           )}
         </div>
       </div>
+      {mostrarPagamentoModal && contaSelecionada && (
+        <Modal
+          titulo="Pagar débito"
+          onClose={() => setMostrarPagamentoModal(false)}
+        >
+          <form onSubmit={registrarPagamento} className="space-y-4">
+            <div className="bg-gray-50 rounded-xl p-4">
+              <p className="text-sm text-gray-500">Conta</p>
+              <p className="font-medium text-[#2D2E47]">
+                {contaSelecionada.descricao || `Conta #${contaSelecionada.id}`}
+              </p>
+
+              <p className="text-sm text-gray-500 mt-3">Saldo em aberto</p>
+              <p className="font-semibold text-[#2D2E47]">
+                {formatarMoeda(
+                  Number(contaSelecionada.valorTotal || 0) -
+                    Number(contaSelecionada.valorPago || 0)
+                )}
+              </p>
+            </div>
+
+            <CampoInput
+              label="Valor do pagamento *"
+              type="number"
+              value={pagamento.valor}
+              onChange={(e) =>
+                setPagamento({
+                  ...pagamento,
+                  valor: e.target.value
+                })
+              }
+              placeholder="0,00"
+              required
+            />
+
+            <CampoSelect
+              label="Forma de pagamento"
+              value={pagamento.formaPagamento}
+              onChange={(e) =>
+                setPagamento({
+                  ...pagamento,
+                  formaPagamento: e.target.value
+                })
+              }
+              options={[
+                { value: "", label: "Selecione" },
+                { value: "dinheiro", label: "Dinheiro" },
+                { value: "pix", label: "Pix" },
+                { value: "cartao_credito", label: "Cartão de crédito" },
+                { value: "cartao_debito", label: "Cartão de débito" }
+              ]}
+            />
+
+            <CampoInput
+              label="Descrição"
+              value={pagamento.descricao}
+              onChange={(e) =>
+                setPagamento({
+                  ...pagamento,
+                  descricao: e.target.value
+                })
+              }
+              placeholder="Ex: pagamento no final do mês"
+            />
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setMostrarPagamentoModal(false)}
+                className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="submit"
+                className="px-5 py-2.5 rounded-xl bg-[#2F8AA3] text-white hover:opacity-90"
+              >
+                Confirmar pagamento
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </AppLayout>
   )
 }
@@ -378,6 +529,78 @@ function ResumoCard({ titulo, valor }) {
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
       <p className="text-sm text-gray-500">{titulo}</p>
       <p className="text-2xl font-bold text-[#2D2E47] mt-2">{valor}</p>
+    </div>
+  )
+}
+
+function Modal({ titulo, children, onClose, largura = "max-w-2xl" }) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/35 flex items-center justify-center p-4">
+      <div
+        className={`w-full ${largura} bg-white rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto`}
+      >
+        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+          <h2 className="text-2xl font-bold text-[#2D2E47]">{titulo}</h2>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-2xl"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="p-6">{children}</div>
+      </div>
+    </div>
+  )
+}
+
+function CampoInput({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  required = false
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-[#2D2E47] mb-2">
+        {label}
+      </label>
+
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        required={required}
+        className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#3E7996]"
+      />
+    </div>
+  )
+}
+
+function CampoSelect({ label, value, onChange, options = [] }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-[#2D2E47] mb-2">
+        {label}
+      </label>
+
+      <select
+        value={value}
+        onChange={onChange}
+        className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#3E7996]"
+      >
+        {options.map((option) => (
+          <option key={`${option.value}-${option.label}`} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
     </div>
   )
 }
