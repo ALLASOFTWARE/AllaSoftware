@@ -3,8 +3,6 @@ import { useSearchParams } from "react-router-dom"
 import AppLayout from "../layouts/AppLayout"
 import api from "../services/api"
 import ClienteSearchSelect from "../components/ClienteSearchSelect"
-import { formatarMoeda } from "../utils/formatters"
-import ResumoCard from "../components/ResumoCard"
 
 export default function Vendas() {
   const [searchParams] = useSearchParams()
@@ -57,46 +55,11 @@ export default function Vendas() {
     }
   }
 
-  const clientesFiltrados = clientes.filter((cliente) =>
-    cliente.nome.toLowerCase().includes(buscaCliente.toLowerCase())
-  )
-
-  const opcoesAtuais = tipoItem === "produto" ? produtos : servicos
-
-  const itemSelecionado = opcoesAtuais.find(
-    (item) => String(item.id) === String(referenciaId)
-  )
-
-  const precoAtual = useMemo(() => {
-    if (!itemSelecionado) return 0
-
-    if (tipoItem === "produto") {
-      if (tipoPreco === "atacado" && itemSelecionado.precoAtacado) {
-        return Number(itemSelecionado.precoAtacado)
-      }
-      return Number(itemSelecionado.precoVarejo || 0)
-    }
-
-    return Number(itemSelecionado.preco || 0)
-  }, [itemSelecionado, tipoItem, tipoPreco])
-
-  const totalBruto = useMemo(() => {
-    return itens.reduce((acc, item) => acc + Number(item.subtotal || 0), 0)
-  }, [itens])
-
-  const totalFinal = useMemo(() => {
-    return totalBruto - Number(desconto || 0)
-  }, [totalBruto, desconto])
-
-  const valorPagoNumero = Number(valorPago || 0)
-  const valorRestante = Math.max(totalFinal - valorPagoNumero, 0)
-
-  const formatarMoeda = (valor) => {
-    return Number(valor || 0).toLocaleString("pt-BR", {
+  const formatarMoeda = (valor) =>
+    Number(valor || 0).toLocaleString("pt-BR", {
       style: "currency",
       currency: "BRL",
     })
-  }
 
   const precoDe = (item, tipo) => {
     if (tipo === "produto") {
@@ -262,214 +225,116 @@ export default function Vendas() {
 
   return (
     <AppLayout>
-      {/* Header da página */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-[#2D2E47]">
-            Nova Venda
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Adicione itens e finalize em um clique.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* Tipo de preço */}
-          <div className="inline-flex bg-gray-100 rounded-xl p-1">
-            <button
-              type="button"
-              onClick={() => setTipoPreco("varejo")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                tipoPreco === "varejo"
-                  ? "bg-white text-[#2D2E47] shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Varejo
-            </button>
-            <button
-              type="button"
-              onClick={() => setTipoPreco("atacado")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                tipoPreco === "atacado"
-                  ? "bg-white text-[#2D2E47] shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Atacado
-            </button>
+      <div className="flex flex-col h-[calc(100vh-4rem)]">
+        
+        {/* HEADER FIXO */}
+        <div className="flex-none flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-[#2D2E47]">
+              Nova Venda
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Adicione itens e finalize em um clique.
+            </p>
           </div>
 
-          {/* Botão carrinho mobile */}
-          <button
-            type="button"
-            onClick={() => setCarrinhoAberto(true)}
-            className="lg:hidden relative bg-[#2F8AA3] text-white px-4 py-2 rounded-xl font-medium flex items-center gap-2"
-          >
-            <CartIcon className="w-4 h-4" />
-            Carrinho
-            {totalItens > 0 && (
-              <span className="bg-white text-[#2F8AA3] text-xs font-bold rounded-full px-2 py-0.5">
-                {totalItens}
-              </span>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Layout 2 colunas */}
-      <div className="grid lg:grid-cols-[1fr_400px] xl:grid-cols-[1fr_440px] gap-6 lg:h-[calc(100vh-12rem)]">
-        {/* Catálogo */}
-        <section className="flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-5 border-b border-gray-100 space-y-4">
-            <div className="relative">
-              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                placeholder="Buscar produtos ou serviços..."
-                className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-3 outline-none focus:ring-2 focus:ring-[#3E7996]"
-              />
-            </div>
-
+          <div className="flex items-center gap-3">
             <div className="inline-flex bg-gray-100 rounded-xl p-1">
               <button
-                type="button"
-                onClick={() => setAba("produto")}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-                  aba === "produto"
-                    ? "bg-white text-[#2D2E47] shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
+                onClick={() => setTipoPreco("varejo")}
+                className={`px-4 py-2 rounded-lg text-sm ${
+                  tipoPreco === "varejo"
+                    ? "bg-white shadow-sm"
+                    : "text-gray-500"
                 }`}
               >
-                Produtos
-                <span className="text-xs bg-gray-200 text-gray-600 rounded-full px-1.5">
-                  {produtos.length}
-                </span>
+                Varejo
               </button>
               <button
-                type="button"
-                onClick={() => setAba("servico")}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-                  aba === "servico"
-                    ? "bg-white text-[#2D2E47] shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
+                onClick={() => setTipoPreco("atacado")}
+                className={`px-4 py-2 rounded-lg text-sm ${
+                  tipoPreco === "atacado"
+                    ? "bg-white shadow-sm"
+                    : "text-gray-500"
                 }`}
               >
-                Serviços
-                <span className="text-xs bg-gray-200 text-gray-600 rounded-full px-1.5">
-                  {servicos.length}
-                </span>
+                Atacado
               </button>
             </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-5">
-            {listaFiltrada.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mb-3">
-                  <SearchIcon className="w-6 h-6 text-gray-400" />
-                </div>
-                <p className="text-sm font-medium text-[#2D2E47]">
-                  Nada por aqui
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Tente outro termo ou cadastre um item.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                {listaFiltrada.map((item) => {
-                  const preco = precoDe(item, aba)
-                  const qtdNoCarrinho =
-                    itens.find(
-                      (i) =>
-                        i.tipoItem === aba && i.referenciaId === item.id
-                    )?.quantidade ?? 0
-
-                  return (
-                    <button
-                      key={`${aba}-${item.id}`}
-                      type="button"
-                      onClick={() => adicionarItem(item)}
-                      className={`group relative text-left rounded-xl border bg-white p-4 transition hover:shadow-md hover:-translate-y-0.5 ${
-                        qtdNoCarrinho > 0
-                          ? "border-[#2F8AA3] ring-1 ring-[#2F8AA3]/20"
-                          : "border-gray-200 hover:border-[#2F8AA3]/40"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="w-10 h-10 rounded-lg bg-[#2F8AA3]/10 text-[#2F8AA3] flex items-center justify-center">
-                          {aba === "produto" ? (
-                            <PackageIcon className="w-5 h-5" />
-                          ) : (
-                            <WrenchIcon className="w-5 h-5" />
-                          )}
-                        </div>
-                        {qtdNoCarrinho > 0 && (
-                          <span className="bg-[#2F8AA3] text-white text-xs font-bold rounded-full px-2 py-0.5">
-                            {qtdNoCarrinho}
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-3 font-medium text-sm text-[#2D2E47] line-clamp-2">
-                        {item.nome}
-                      </p>
-                      <div className="mt-2 flex items-center justify-between">
-                        <span className="font-semibold text-[#2D2E47]">
-                          {formatarMoeda(preco)}
-                        </span>
-                        <span className="opacity-0 group-hover:opacity-100 transition text-xs text-[#2F8AA3] font-medium flex items-center gap-1">
-                          <PlusIcon className="w-3 h-3" /> Adicionar
-                        </span>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Carrinho desktop */}
-        <aside className="hidden lg:flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <Carrinho {...carrinhoProps} />
-        </aside>
-      </div>
-
-      {/* Carrinho mobile (drawer) */}
-      {carrinhoAberto && (
-        <div
-          className="fixed inset-0 z-50 lg:hidden"
-          onClick={() => setCarrinhoAberto(false)}
-        >
-          <div className="absolute inset-0 bg-black/40" />
-          <div
-            className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <div>
-                <h2 className="text-lg font-semibold text-[#2D2E47]">
-                  Carrinho
-                </h2>
-                <p className="text-xs text-gray-500">
-                  Revise e finalize a venda
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCarrinhoAberto(false)}
-                className="text-gray-400 hover:text-gray-700 text-2xl leading-none"
-              >
-                ×
-              </button>
-            </div>
-            <Carrinho {...carrinhoProps} />
           </div>
         </div>
-      )}
+
+        {/* CONTEÚDO */}
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <div className="grid lg:grid-cols-[1fr_400px] xl:grid-cols-[1fr_440px] gap-6 h-full">
+
+            {/* ESQUERDA (CATÁLOGO) */}
+            <section className="flex flex-col bg-white rounded-2xl border border-gray-200 overflow-hidden min-h-0">
+              
+              {/* topo */}
+              <div className="p-5 border border-gray-200 space-y-4">
+                <input
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  placeholder="Buscar produtos ou serviços..."
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3"
+                />
+
+                <div className="inline-flex bg-gray-100 rounded-xl p-1">
+                  <button
+                    type="button"
+                    onClick={() => setAba("produto")}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                      aba === "produto"
+                        ? "bg-white text-[#2D2E47] shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    Produtos
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAba("servico")}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                      aba === "servico"
+                        ? "bg-white text-[#2D2E47] shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    Serviços
+                  </button>
+                </div>
+              </div>
+
+              {/* LISTA COM SCROLL */}
+              <div className="flex-1 overflow-y-auto p-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {listaFiltrada.map((item) => {
+                    const preco = precoDe(item, aba)
+
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => adicionarItem(item)}
+                        className="border border-gray-200 rounded-xl p-4 text-left hover:shadow"
+                      >
+                        <p className="font-medium">{item.nome}</p>
+                        <p>{formatarMoeda(preco)}</p>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </section>
+
+            {/* DIREITA (CARRINHO) */}
+            <aside className="flex flex-col bg-white rounded-2xl border border-gray-200 min-h-0 overflow-hidden">
+              <Carrinho {...carrinhoProps} />
+            </aside>
+          </div>
+        </div>
+      </div>
     </AppLayout>
   )
 }
@@ -504,9 +369,9 @@ function Carrinho({
   formatarMoeda,
 }) {
   return (
-    <>
+    <div className="flex flex-col min-h-0 h-full">
       {/* Cliente */}
-      <div className="px-5 pt-5 pb-4 border-b border-gray-100">
+      <div className="flex-none px-5 pt-5 pb-4 border-b border-gray-100">
         <label className="block text-[11px] uppercase tracking-wide text-gray-500 mb-2 font-medium">
           Cliente
         </label>
@@ -521,7 +386,7 @@ function Carrinho({
       </div>
 
       {/* Itens do carrinho */}
-      <div className="flex-1 overflow-y-auto px-5">
+      <div className="flex-1 min-h-0 overflow-y-auto px-5">
         {itens.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mb-3">
@@ -595,7 +460,7 @@ function Carrinho({
       </div>
 
       {/* Resumo + ação */}
-      <div className="border-t border-gray-100 bg-white px-5 py-4 space-y-3">
+      <div className="flex-none border-t border-gray-100 bg-white px-5 py-4 space-y-3">
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="block text-[11px] uppercase tracking-wide text-gray-500 mb-1 font-medium">
@@ -716,7 +581,7 @@ function Carrinho({
           </p>
         )}
       </div>
-    </>
+    </div>
   )
 }
 
@@ -792,12 +657,19 @@ function WrenchIcon({ className = "" }) {
   )
 }
 
-function ResumoCard({ titulo, valor, subtitulo }) {
+function PlusIcon({ className = "" }) {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-      <p className="text-sm text-gray-500">{titulo}</p>
-      <p className="text-2xl font-bold text-[#2D2E47] mt-2">{valor}</p>
-      <p className="text-sm text-gray-400 mt-1">{subtitulo}</p>
-    </div>
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M5 12h14" />
+      <path d="M12 5v14" />
+    </svg>
   )
 }
