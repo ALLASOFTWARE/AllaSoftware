@@ -8,7 +8,7 @@ import {
   import { permitirRoles } from "../middlewares/permitirRoles.js"
   
   export default (app) => {
-    app.post("/contas-receber", auth, permitirRoles("admin", "gerente"), criarContaReceber)
+    app.post("/contas-receber", auth, criarContaReceber)
     app.get("/contas-receber", auth, listarContasReceber)
-    app.post("/contas-receber/:id/pagamentos", auth, permitirRoles("admin", "gerente"), registrarPagamentoConta)
+    app.post("/contas-receber/:id/pagamentos", auth, registrarPagamentoConta)
   }
