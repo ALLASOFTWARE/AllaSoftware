@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "Usuario" ADD COLUMN     "cargo" TEXT,
+ADD COLUMN     "permissoes" JSONB,
+ADD COLUMN     "status" TEXT NOT NULL DEFAULT 'ativo',
+ADD COLUMN     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

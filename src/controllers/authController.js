@@ -54,10 +54,10 @@ export const register = async (req, res) => {
       }
     })
 
-    // 📧 Enviar email de boas-vindas
+    // Enviar email de boas-vindas
     await enviarEmailRegistro(email, nomeEmpresa, nomeUsuario)
 
-    // 📋 Registrar auditoria
+    //  Registrar auditoria
     await registrarAuditoria(
       empresa.id,
       usuarioAdmin.id,
@@ -167,6 +167,12 @@ export const loginUsuario = async (req, res) => {
       })
     }
 
+    if (usuario.status !== "ativo") {
+      return res.status(403).json({
+        error: "Usuário desativado. Entre em contato com o administrador."
+      })
+    }
+
     // Gerar tokens
     const accessToken = gerarAccessToken(usuario.empresaId, usuario.id, usuario.role)
     const refreshToken = gerarRefreshToken(usuario.empresaId, usuario.id)
@@ -181,6 +187,9 @@ export const loginUsuario = async (req, res) => {
         nome: usuario.nome,
         email: usuario.email,
         role: usuario.role,
+        cargo: usuario.cargo,
+        status: usuario.status,
+        permissoes: usuario.permissoes,
         empresaId: usuario.empresaId
       }
     })

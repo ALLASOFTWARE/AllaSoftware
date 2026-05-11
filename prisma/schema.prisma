@@ -28,15 +28,19 @@ model Empresa {
 }
 
 model Usuario {
-  id        Int      @id @default(autoincrement())
-  nome      String
-  email     String   @unique
-  senha     String
-  role      String   @default("funcionario")
-  empresaId Int
-  createdAt DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  nome        String
+  email       String   @unique
+  senha       String
+  role        String   @default("funcionario")
+  cargo       String?
+  status      String   @default("ativo")
+  permissoes  Json?
+  empresaId   Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
 
-  empresa    Empresa  @relation(fields: [empresaId], references: [id])
+  empresa     Empresa  @relation(fields: [empresaId], references: [id])
 }
 
 model Cliente {

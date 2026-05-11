@@ -18,7 +18,7 @@ import Vendas from "./pages/Vendas"
 import ClienteFinanceiro from "./pages/ClienteFinanceiro" 
 import Agendamentos from "./pages/Agendamentos"
 import Perfil from "./pages/Perfil"
-
+import Equipe from "./pages/Equipe"
 
 function App() {
   return (
@@ -150,6 +150,14 @@ function App() {
           element={
             <PrivateRoute>
               <Perfil />
+            </PrivateRoute>
+          }
+        />
+        <Route 
+          path="/equipe"
+          element={
+            <PrivateRoute>
+              <Equipe />
             </PrivateRoute>
           }
         />

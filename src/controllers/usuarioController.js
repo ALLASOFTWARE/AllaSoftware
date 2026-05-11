@@ -1,10 +1,91 @@
 import prisma from "../config/prisma.js"
 import bcrypt from "bcryptjs"
 
+const permissoesPadraoFuncionario = {
+  dashboard: {
+    visualizar: true
+  },
+  clientes: {
+    visualizar: true,
+    criar: true,
+    editar: true,
+    excluir: false
+  },
+  servicos: {
+    visualizar: true,
+    criar: false,
+    editar: false,
+    excluir: false
+  },
+  produtos: {
+    visualizar: true,
+    criar: false,
+    editar: false,
+    excluir: false
+  },
+  vendas: {
+    visualizar: true,
+    criar: true,
+    editar: false,
+    excluir: false
+  },
+  contasReceber: {
+    visualizar: true,
+    criar: false,
+    receberPagamento: true,
+    editar: false,
+    excluir: false
+  },
+  agendamentos: {
+    visualizar: true,
+    criar: true,
+    editar: true,
+    excluir: false
+  },
+  financeiro: {
+    visualizar: false,
+    criar: false,
+    editar: false,
+    excluir: false
+  },
+  relatorios: {
+    visualizar: false
+  },
+  usuarios: {
+    visualizar: false,
+    criar: false,
+    editar: false,
+    excluir: false
+  }
+}
+
+const permissoesAdmin = {
+  dashboard: { visualizar: true },
+  clientes: { visualizar: true, criar: true, editar: true, excluir: true },
+  servicos: { visualizar: true, criar: true, editar: true, excluir: true },
+  produtos: { visualizar: true, criar: true, editar: true, excluir: true },
+  vendas: { visualizar: true, criar: true, editar: true, excluir: true },
+  contasReceber: {
+    visualizar: true,
+    criar: true,
+    receberPagamento: true,
+    editar: true,
+    excluir: true
+  },
+  agendamentos: { visualizar: true, criar: true, editar: true, excluir: true },
+  financeiro: { visualizar: true, criar: true, editar: true, excluir: true },
+  relatorios: { visualizar: true },
+  usuarios: { visualizar: true, criar: true, editar: true, excluir: true }
+}
+
+const obterPermissoesPorRole = (role) => {
+  return role === "admin" ? permissoesAdmin : permissoesPadraoFuncionario
+}
+
 // ─── Criar usuário ───────────────────────────────────────────
 export const criarUsuario = async (req, res) => {
   try {
-    const { nome, email, senha, role } = req.body || {}
+    const { nome, email, senha, role, cargo, status, permissoes } = req.body || {}
 
     if (!nome || !email || !senha) {
       return res.status(400).json({
@@ -31,7 +112,10 @@ export const criarUsuario = async (req, res) => {
         nome,
         email,
         senha: hash,
-        role: role || "funcionario",
+        role: roleFinal,
+        cargo: cargo || null,
+        status: status || "ativo",
+        permissoes: permissoes || obterPermissoesPorRole(roleFinal),
         empresaId: req.empresaId
       }
     })
@@ -41,6 +125,9 @@ export const criarUsuario = async (req, res) => {
       nome: usuario.nome,
       email: usuario.email,
       role: usuario.role,
+      cargo: usuario.cargo,
+      status: usuario.status,
+      permissoes: usuario.permissoes,
       empresaId: usuario.empresaId
     })
   } catch (error) {
@@ -59,8 +146,12 @@ export const listarUsuarios = async (req, res) => {
         nome: true,
         email: true,
         role: true,
+        cargo: true,
+        status: true,
+        permissoes: true,
         empresaId: true,
-        createdAt: true
+        createdAt: true,
+        updatedAt: true
       },
       orderBy: { nome: "asc" }
     })
@@ -97,6 +188,151 @@ export const deletarUsuario = async (req, res) => {
   } catch (error) {
     console.error("Erro ao deletar usuário:", error)
     res.status(500).json({ error: "Erro ao deletar usuário" })
+  }
+}
+
+export const atualizarUsuario = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { nome, email, role, cargo, status, permissoes, senha } = req.body || {}
+
+    if (role && !["admin", "funcionario"].includes(role)) {
+      return res.status(400).json({
+        error: "Role inválida. Use 'admin' ou 'funcionario'"
+      })
+    }
+
+    if (status && !["ativo", "inativo"].includes(status)) {
+      return res.status(400).json({
+        error: "Status inválido. Use 'ativo' ou 'inativo'"
+      })
+    }
+
+    const usuarioExistente = await prisma.usuario.findFirst({
+      where: {
+        id: Number(id),
+        empresaId: req.empresaId
+      }
+    })
+
+    if (!usuarioExistente) {
+      return res.status(404).json({
+        error: "Usuário não encontrado para esta empresa"
+      })
+    }
+
+    if (Number(id) === Number(req.usuarioId) && status === "inativo") {
+      return res.status(400).json({
+        error: "Você não pode desativar o próprio usuário logado"
+      })
+    }
+
+    const dados = {}
+
+    if (nome !== undefined) dados.nome = nome
+    if (email !== undefined) dados.email = email
+    if (role !== undefined) dados.role = role
+    if (cargo !== undefined) dados.cargo = cargo || null
+    if (status !== undefined) dados.status = status
+    if (permissoes !== undefined) dados.permissoes = permissoes
+
+    if (senha) {
+      dados.senha = await bcrypt.hash(senha, 10)
+    }
+
+    const usuarioAtualizado = await prisma.usuario.update({
+      where: {
+        id: Number(id)
+      },
+      data: dados,
+      select: {
+        id: true,
+        nome: true,
+        email: true,
+        role: true,
+        cargo: true,
+        status: true,
+        permissoes: true,
+        empresaId: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    })
+
+    res.json(usuarioAtualizado)
+  } catch (error) {
+    console.error("Erro ao atualizar usuário:", error)
+
+    if (error.code === "P2002") {
+      return res.status(400).json({
+        error: "Já existe um usuário com esse email"
+      })
+    }
+
+    res.status(500).json({
+      error: "Erro ao atualizar usuário"
+    })
+  }
+}
+
+export const alterarStatusUsuario = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { status } = req.body || {}
+
+    if (!["ativo", "inativo"].includes(status)) {
+      return res.status(400).json({
+        error: "Status inválido. Use 'ativo' ou 'inativo'"
+      })
+    }
+
+    const usuarioExistente = await prisma.usuario.findFirst({
+      where: {
+        id: Number(id),
+        empresaId: req.empresaId
+      }
+    })
+
+    if (!usuarioExistente) {
+      return res.status(404).json({
+        error: "Usuário não encontrado para esta empresa"
+      })
+    }
+
+    if (Number(id) === Number(req.usuarioId) && status === "inativo") {
+      return res.status(400).json({
+        error: "Você não pode desativar o próprio usuário logado"
+      })
+    }
+
+    const usuarioAtualizado = await prisma.usuario.update({
+      where: {
+        id: Number(id)
+      },
+      data: {
+        status
+      },
+      select: {
+        id: true,
+        nome: true,
+        email: true,
+        role: true,
+        cargo: true,
+        status: true,
+        permissoes: true,
+        empresaId: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    })
+
+    res.json(usuarioAtualizado)
+  } catch (error) {
+    console.error("Erro ao alterar status do usuário:", error)
+
+    res.status(500).json({
+      error: "Erro ao alterar status do usuário"
+    })
   }
 }
 
@@ -457,3 +693,4 @@ export const atualizarPerfil = async (req, res) => {
     })
   }
 }
+

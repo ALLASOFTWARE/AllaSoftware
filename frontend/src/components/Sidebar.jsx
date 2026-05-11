@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom"
+import { podeAcessar } from "../utils/permissoes"
 
 export default function Sidebar({ aberta = true, setAberta }) {
   const navigate = useNavigate()
@@ -61,6 +62,8 @@ export default function Sidebar({ aberta = true, setAberta }) {
       </div>
 
       <nav className="flex-1 p-4 space-y-2">
+
+        {podeAcessar("dashboard") && (
         <button
           type="button"
           onClick={() => navigate("/dashboard")}
@@ -68,7 +71,9 @@ export default function Sidebar({ aberta = true, setAberta }) {
         >
           Dashboard
         </button>
+        )}
 
+        {podeAcessar("clientes") && (
         <button
           type="button"
           onClick={() => navigate("/clientes")}
@@ -76,7 +81,9 @@ export default function Sidebar({ aberta = true, setAberta }) {
         >
           Clientes
         </button>
+        )}
 
+        {podeAcessar("servicos") && (
         <button
           type="button"
           onClick={() => navigate("/servicos")}
@@ -84,7 +91,9 @@ export default function Sidebar({ aberta = true, setAberta }) {
         >
           Serviços
         </button>
+        )}
 
+        {podeAcessar("produtos") && (
         <button
           type="button"
           onClick={() => navigate("/produtos")}
@@ -92,7 +101,9 @@ export default function Sidebar({ aberta = true, setAberta }) {
         >
           Produtos
         </button>
+        )}
 
+        {podeAcessar("vendas") && (
         <button
           type="button"
           onClick={() => navigate("/vendas")}
@@ -100,7 +111,9 @@ export default function Sidebar({ aberta = true, setAberta }) {
         >
           Vendas
         </button>
+        )}
 
+        {podeAcessar("contas-receber") && (
         <button
           type="button"
           onClick={() => navigate("/contas-receber")}
@@ -108,30 +121,37 @@ export default function Sidebar({ aberta = true, setAberta }) {
         >
           Contas a Receber
         </button>
+        )}
 
-        <button
-          type="button"
-          onClick={() => navigate("/agendamentos")}
-          className={getNavButtonClass("/agendamentos")}
-        >
-          Agendamentos
-        </button>
+        {podeAcessar("agendamentos") && (
+          <button
+            type="button"
+            onClick={() => navigate("/agendamentos")}
+            className={getNavButtonClass("/agendamentos")}
+          >
+            Agendamentos
+          </button>
+        )}
 
         {usuario?.role === "admin" && (
           <div className="pt-3 mt-3 border-t border-white/10">
-            <p className="px-4 text-[11px] uppercase tracking-wide text-white/40 mb-2">
-              Administração
-            </p>
+          <p className="px-4 text-[11px] uppercase tracking-wide text-white/40 mb-2">
+             Administração
+          </p>
 
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => navigate("/transacoes")}
-                className={getNavButtonClass("/transacoes")}
-              >
+          <div className="space-y-2">
+
+          {podeAcessar("financeiro") && (
+            <button
+              type="button"
+              onClick={() => navigate("/transacoes")}
+              className={getNavButtonClass("/transacoes")}
+            >
                 Financeiro
               </button>
+          )}
 
+          {podeAcessar("relatorios") && (
               <button
                 type="button"
                 onClick={() => navigate("/financeiro/dashboard")}
@@ -139,15 +159,19 @@ export default function Sidebar({ aberta = true, setAberta }) {
               >
                 Dashboard Financeiro
               </button>
+          )}
 
-              <button
-                type="button"
-                onClick={() => navigate("/usuarios")}
-                className={getNavButtonClass("/usuarios")}
-              >
-                Usuários
+          {podeAcessar("equipe") && (
+            <button
+              type="button"
+              onClick={() => navigate("/equipe")}
+              className={getNavButtonClass("/equipe")}
+            >
+                Equipe
               </button>
+          )}
 
+          {podeAcessar("relatorios") && (
               <button
                 type="button"
                 onClick={() => navigate("/relatorios/financeiro")}
@@ -155,6 +179,7 @@ export default function Sidebar({ aberta = true, setAberta }) {
               >
                 Relatórios
               </button>
+          )}
             </div>
           </div>
         )}
