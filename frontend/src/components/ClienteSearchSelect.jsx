@@ -2,7 +2,6 @@ import { useEffect, useState, useMemo } from "react"
 
 export default function ClienteSearchSelect({
   clientes = [],
-  clienteId,
   setClienteId,
   buscaInicial = "",
   placeholder = "Buscar cliente...",

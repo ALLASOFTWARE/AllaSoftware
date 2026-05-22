@@ -30,7 +30,7 @@ export default function Vendas() {
   const [descricaoConta, setDescricaoConta] = useState("")
 
   const [salvando, setSalvando] = useState(false)
-  const [carrinhoAberto, setCarrinhoAberto] = useState(false)
+  const [, setCarrinhoAberto] = useState(false)
   const [aviso, setAviso] = useState(null)
 
   useEffect(() => {
