@@ -1,4 +1,5 @@
 import prisma from "../config/prisma.js"
+import { criarComissao } from "../services/comissaoService.js"
 
 const statusPermitidos = ["agendado", "concluido", "cancelado"]
 
@@ -616,6 +617,19 @@ export const concluirAgendamento = async (req, res) => {
           itens: true,
           contaReceber: true
         }
+      })
+
+      await criarComissao({
+        tx,
+        empresaId: req.empresaId,
+        usuarioId: agendamento.profissionalId,
+        vendaId: venda.id,
+        agendamentoId: agendamento.id,
+        tipo: "servico",
+        descricao: agendamento.servico.nome,
+        valorBase: valorServico,
+        percentualItem: agendamento.servico.comissaoPercentual,
+        percentualPadrao: agendamento.profissional?.comissaoPercentualPadrao
       })
 
       if (valorPagoNumero > 0) {

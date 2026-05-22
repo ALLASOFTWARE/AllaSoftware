@@ -25,6 +25,7 @@ model Empresa {
   estado      String?
 
   usuarios Usuario[]
+  comissoes Comissao[]
 }
 
 model Usuario {
@@ -49,6 +50,7 @@ model Usuario {
   empresa     Empresa  @relation(fields: [empresaId], references: [id])
   agendamentosProfissional Agendamento[] @relation("ProfissionalAgendamentos")
   vendasComoVendedor       Venda[] @relation("VendasVendedor")
+  comissoes                Comissao[]
 }
 
 model Cliente {
@@ -76,6 +78,8 @@ model Transacao {
   status    String   @default("ativa")
   empresaId Int
   createdAt DateTime @default(now())
+
+  comissoes Comissao[]
 }
 
 model ContaReceber {
@@ -152,6 +156,7 @@ model Venda {
 
   itens          ItemVenda[]
   agendamento Agendamento?
+  comissoes      Comissao[]
   cliente        Cliente? @relation(fields: [clienteId], references: [id])
   contaReceber   ContaReceber? @relation(fields: [contaReceberId], references: [id])
   vendedor       Usuario? @relation("VendasVendedor", fields: [vendedorId], references: [id])
@@ -219,6 +224,7 @@ model Agendamento {
   servico        Servico? @relation(fields: [servicoId], references: [id])
   profissional   Usuario? @relation("ProfissionalAgendamentos", fields: [profissionalId], references: [id])
   venda          Venda?   @relation(fields: [vendaId], references: [id])
+  comissoes      Comissao[]
 
   @@index([empresaId])
   @@index([clienteId])
@@ -226,4 +232,36 @@ model Agendamento {
   @@index([profissionalId])
   @@index([status])
   @@index([dataHora])
+}
+
+model Comissao {
+  id             Int       @id @default(autoincrement())
+  empresaId      Int
+  usuarioId      Int
+  vendaId        Int?
+  agendamentoId  Int?
+  transacaoId    Int?
+
+  tipo           String
+  descricao      String?
+  valorBase      Float
+  percentual     Float
+  valorComissao  Float
+  status         String    @default("pendente")
+  dataPagamento  DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
+
+  empresa        Empresa     @relation(fields: [empresaId], references: [id])
+  usuario        Usuario     @relation(fields: [usuarioId], references: [id])
+  venda          Venda?      @relation(fields: [vendaId], references: [id])
+  agendamento    Agendamento? @relation(fields: [agendamentoId], references: [id])
+  transacao      Transacao?  @relation(fields: [transacaoId], references: [id])
+
+  @@index([empresaId])
+  @@index([usuarioId])
+  @@index([vendaId])
+  @@index([agendamentoId])
+  @@index([status])
+  @@index([createdAt])
 }

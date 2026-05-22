@@ -1,5 +1,6 @@
 import prisma from "../config/prisma.js"
 import { gerarComprovanteVenda, imprimirTermico } from "../services/comprovanteService.js"
+import { criarComissao } from "../services/comissaoService.js"
 
 const calcularStatusConta = (valorTotal, valorPago, vencimento) => {
   if (valorPago >= valorTotal) return "pago"
@@ -210,6 +211,7 @@ export const criarVenda = async (req, res) => {
         custoUnitario,
         custoTotal,
         lucroBruto,
+        comissaoPercentual: registro.comissaoPercentual,
         produtoEstoqueControlado: 
           tipoItem === "produto" && registro.estoque !== null && registro.estoque !== undefined,
         subtotal: Number(subtotal)
@@ -260,6 +262,19 @@ export const criarVenda = async (req, res) => {
       }
     }
 
+    const vendedor = req.usuarioId
+      ? await prisma.usuario.findFirst({
+          where: {
+            id: req.usuarioId,
+            empresaId: req.empresaId
+          },
+          select: {
+            id: true,
+            comissaoPercentualPadrao: true
+          }
+        })
+      : null
+
     const venda = await prisma.$transaction(async (tx) => {
       let contaMensal = null
 
@@ -275,7 +290,7 @@ export const criarVenda = async (req, res) => {
       }
 
       const itensParaCriar = itensProcessados.map(
-        ({ produtoEstoqueControlado, ...item}) => item
+        ({ produtoEstoqueControlado, comissaoPercentual, ...item}) => item
       )
  
       const novaVenda = await tx.venda.create({
@@ -328,6 +343,22 @@ export const criarVenda = async (req, res) => {
             empresaId: req.empresaId
           }
         })
+      }
+
+      if (vendedor) {
+        for (const item of itensProcessados) {
+          await criarComissao({
+            tx,
+            empresaId: req.empresaId,
+            usuarioId: vendedor.id,
+            vendaId: novaVenda.id,
+            tipo: item.tipoItem,
+            descricao: item.nomeItem,
+            valorBase: item.subtotal,
+            percentualItem: item.comissaoPercentual,
+            percentualPadrao: vendedor.comissaoPercentualPadrao
+          })
+        }
       }
 
       if (contaMensal && valorPagoFinal > 0) {
