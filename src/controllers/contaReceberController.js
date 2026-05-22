@@ -14,8 +14,8 @@ const calcularStatusConta = (valorTotal, valorPago, vencimento) => {
 
   return "parcial"
 }
-const atualizarStatusCliente = async (clienteId, empresaId) => {
-  const cliente = await prisma.cliente.findFirst({
+const atualizarStatusCliente = async (clienteId, empresaId, db = prisma) => {
+  const cliente = await db.cliente.findFirst({
     where: {
       id: clienteId,
       empresaId
@@ -27,7 +27,7 @@ const atualizarStatusCliente = async (clienteId, empresaId) => {
 
   if (!cliente || cliente.status === "inativo") return
 
-  const contas = await prisma.contaReceber.findMany({
+  const contas = await db.contaReceber.findMany({
     where: {
       clienteId: clienteId,
       empresaId: empresaId
@@ -40,7 +40,7 @@ const atualizarStatusCliente = async (clienteId, empresaId) => {
 
   const novoStatus = temPendencia ? "pendente" : "em_dia"
 
-  await prisma.cliente.update({
+  await db.cliente.update({
     where: {
       id: clienteId
     },
@@ -231,6 +231,13 @@ export const registrarPagamentoConta = async (req, res) => {
     }
 
     const valorPagamento = Number(valor)
+
+    if (!Number.isFinite(valorPagamento) || valorPagamento <= 0) {
+      return res.status(400).json({
+        error: "O valor do pagamento deve ser maior que zero"
+      })
+    }
+
     const novoValorPago = conta.valorPago + valorPagamento
 
     if (novoValorPago > conta.valorTotal) {
@@ -239,47 +246,57 @@ export const registrarPagamentoConta = async (req, res) => {
       })
     }
 
-    const pagamento = await prisma.pagamentoContaReceber.create({
-      data: {
-        contaReceberId: conta.id,
-        empresaId: req.empresaId,
-        valor: valorPagamento,
-        formaPagamento,
-        descricao
-      }
-    })
-
     const novoStatus = calcularStatusConta(
       conta.valorTotal,
       novoValorPago,
       conta.vencimento
     )
-    
-    const contaAtualizada = await prisma.contaReceber.update({
-      where: {
-        id: conta.id
-      },
-      data: {
-        valorPago: novoValorPago,
-        status: novoStatus
-      }
-    })
 
-    await atualizarStatusCliente(conta.clienteId, req.empresaId)
+    const { pagamento, contaAtualizada, transacao } = await prisma.$transaction(
+      async (tx) => {
+        const pagamentoCriado = await tx.pagamentoContaReceber.create({
+          data: {
+            contaReceberId: conta.id,
+            empresaId: req.empresaId,
+            valor: valorPagamento,
+            formaPagamento,
+            descricao
+          }
+        })
 
-    const transacao = await prisma.transacao.create({
-      data: {
-        tipo: "entrada",
-        valor: valorPagamento,
-        categoria: "Pagamento de cliente",
-        descricao:
-          descricao ||
-          `Pagamento da conta ${conta.id} do cliente ${conta.cliente.nome}`,
-        formaPagamento,
-        status: "ativa",
-        empresaId: req.empresaId
+        const contaAtualizadaTransacao = await tx.contaReceber.update({
+          where: {
+            id: conta.id
+          },
+          data: {
+            valorPago: novoValorPago,
+            status: novoStatus
+          }
+        })
+
+        await atualizarStatusCliente(conta.clienteId, req.empresaId, tx)
+
+        const transacaoCriada = await tx.transacao.create({
+          data: {
+            tipo: "entrada",
+            valor: valorPagamento,
+            categoria: "Pagamento de cliente",
+            descricao:
+              descricao ||
+              `Pagamento da conta ${conta.id} do cliente ${conta.cliente.nome}`,
+            formaPagamento,
+            status: "ativa",
+            empresaId: req.empresaId
+          }
+        })
+
+        return {
+          pagamento: pagamentoCriado,
+          contaAtualizada: contaAtualizadaTransacao,
+          transacao: transacaoCriada
+        }
       }
-    })
+    )
 
     const resposta = {
       message: "Pagamento registrado com sucesso",
