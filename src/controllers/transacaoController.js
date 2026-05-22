@@ -7,6 +7,7 @@ const CATEGORIAS_TRANSACOES = {
     "Produto",
     "Venda",
     "Pagamento de cliente",
+    "Estorno",
     "Outro"
   ],
   saida: [
@@ -18,6 +19,7 @@ const CATEGORIAS_TRANSACOES = {
     "Comissão",
     "Pagamento funcionário",
     "Manutenção",
+    "Estorno",
     "Outro"
   ]
 }
@@ -346,7 +348,7 @@ export const estornarTransacao = async (req, res) => {
       data: {
         tipo: tipoEstorno,
         valor: transacaoOriginal.valor,
-        categoria: "estorno",
+        categoria: "Estorno",
         descricao: `Estorno da transação ${transacaoOriginal.id}`,
         status: "ativa",
         empresaId: req.empresaId

@@ -259,7 +259,7 @@ export const registrarPagamentoConta = async (req, res) => {
       data: {
         tipo: "entrada",
         valor: valorPagamento,
-        categoria: "recebimento_cliente",
+        categoria: "Pagamento de cliente",
         descricao:
           descricao ||
           `Pagamento da conta ${conta.id} do cliente ${conta.cliente.nome}`,
