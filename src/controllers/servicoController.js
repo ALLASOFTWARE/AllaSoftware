@@ -1,5 +1,16 @@
 import prisma from "../config/prisma.js"
 
+const numeroOpcionalParaCriacao = (valor) => {
+  if (valor === undefined || valor === null || valor === "") return null
+  return Number(valor)
+}
+
+const numeroOpcionalParaAtualizacao = (valor) => {
+  if (valor === undefined) return undefined
+  if (valor === null || valor === "") return null
+  return Number(valor)
+}
+
 // Criar serviço
 export const criarServico = async (req, res) => {
   try {
@@ -16,7 +27,7 @@ export const criarServico = async (req, res) => {
         nome,
         descricao,
         preco: Number(preco),
-        duracao: duracao ? Number(duracao) : null,
+        duracao: numeroOpcionalParaCriacao(duracao),
         status: status || "ativo",
         comissaoPercentual:
           comissaoPercentual !== undefined &&
@@ -100,7 +111,7 @@ export const atualizarServico = async (req, res) => {
         nome,
         descricao,
         preco: preco !== undefined ? Number(preco) : undefined,
-        duracao: duracao !== undefined ? Number(duracao) : undefined,
+        duracao: numeroOpcionalParaAtualizacao(duracao),
         status,
         comissaoPercentual:
           comissaoPercentual === undefined

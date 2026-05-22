@@ -1,5 +1,16 @@
 import prisma from "../config/prisma.js"
 
+const numeroOpcionalParaCriacao = (valor) => {
+  if (valor === undefined || valor === null || valor === "") return null
+  return Number(valor)
+}
+
+const numeroOpcionalParaAtualizacao = (valor) => {
+  if (valor === undefined) return undefined
+  if (valor === null || valor === "") return null
+  return Number(valor)
+}
+
 // Criar produto
 export const criarProduto = async (req, res) => {
   try {
@@ -16,10 +27,9 @@ export const criarProduto = async (req, res) => {
         nome,
         descricao,
         precoVarejo: Number(precoVarejo),
-        precoAtacado: precoAtacado ? Number(precoAtacado) : null,
-        precoCusto: precoCusto !== undefined && precoCusto !== ""
-        ? Number(precoCusto) : null,
-        estoque: estoque !== undefined && estoque !== "" ? Number(estoque) : null,
+        precoAtacado: numeroOpcionalParaCriacao(precoAtacado),
+        precoCusto: numeroOpcionalParaCriacao(precoCusto),
+        estoque: numeroOpcionalParaCriacao(estoque),
         status: status || "ativo",
         comissaoPercentual:
           comissaoPercentual !== undefined &&
@@ -103,18 +113,9 @@ export const atualizarProduto = async (req, res) => {
         nome,
         descricao,
         precoVarejo: precoVarejo !== undefined ? Number(precoVarejo) : undefined,
-        precoAtacado:
-          precoAtacado !== undefined && precoAtacado !== ""
-            ? Number(precoAtacado)
-            : undefined,
-        estoque:
-          estoque !== undefined && estoque !== ""
-            ? Number(estoque)
-            : undefined,
-        precoCusto:
-          precoCusto !== undefined && precoCusto !== ""
-            ? Number(precoCusto)
-            : undefined,
+        precoAtacado: numeroOpcionalParaAtualizacao(precoAtacado),
+        estoque: numeroOpcionalParaAtualizacao(estoque),
+        precoCusto: numeroOpcionalParaAtualizacao(precoCusto),
         status,
         comissaoPercentual:
           comissaoPercentual === undefined
