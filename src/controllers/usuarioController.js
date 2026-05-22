@@ -204,6 +204,44 @@ export const deletarUsuario = async (req, res) => {
       return res.status(404).json({ error: "Usuário não encontrado para esta empresa" })
     }
 
+    const [vendas, agendamentos, comissoes] = await Promise.all([
+      prisma.venda.count({
+        where: {
+          vendedorId: Number(id),
+          empresaId: req.empresaId
+        }
+      }),
+      prisma.agendamento.count({
+        where: {
+          profissionalId: Number(id),
+          empresaId: req.empresaId
+        }
+      }),
+      prisma.comissao.count({
+        where: {
+          usuarioId: Number(id),
+          empresaId: req.empresaId
+        }
+      })
+    ])
+
+    if (vendas > 0 || agendamentos > 0 || comissoes > 0) {
+      const usuarioInativado = await prisma.usuario.update({
+        where: {
+          id: Number(id)
+        },
+        data: {
+          status: "inativo"
+        }
+      })
+
+      return res.json({
+        message: "Usuário possui histórico e foi inativado com sucesso",
+        usuario: usuarioInativado,
+        inativado: true
+      })
+    }
+
     await prisma.usuario.delete({ where: { id: Number(id) } })
 
     res.json({ message: "Usuário removido com sucesso" })

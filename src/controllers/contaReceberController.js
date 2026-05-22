@@ -15,6 +15,18 @@ const calcularStatusConta = (valorTotal, valorPago, vencimento) => {
   return "parcial"
 }
 const atualizarStatusCliente = async (clienteId, empresaId) => {
+  const cliente = await prisma.cliente.findFirst({
+    where: {
+      id: clienteId,
+      empresaId
+    },
+    select: {
+      status: true
+    }
+  })
+
+  if (!cliente || cliente.status === "inativo") return
+
   const contas = await prisma.contaReceber.findMany({
     where: {
       clienteId: clienteId,

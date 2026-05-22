@@ -374,6 +374,16 @@ export const criarVenda = async (req, res) => {
       }
 
       if (clienteId) {
+        const cliente = await tx.cliente.findFirst({
+          where: {
+            id: Number(clienteId),
+            empresaId: req.empresaId
+          },
+          select: {
+            status: true
+          }
+        })
+
         const contasDoCliente = await tx.contaReceber.findMany({
           where: {
             clienteId: Number(clienteId),
@@ -385,14 +395,16 @@ export const criarVenda = async (req, res) => {
           ["pendente", "parcial", "vencido"].includes(conta.status)
         )
 
-        await tx.cliente.update({
-          where: {
-            id: Number(clienteId)
-          },
-          data: {
-            status: temPendencia ? "pendente" : "em_dia"
-          }
-        })
+        if (cliente?.status !== "inativo") {
+          await tx.cliente.update({
+            where: {
+              id: Number(clienteId)
+            },
+            data: {
+              status: temPendencia ? "pendente" : "em_dia"
+            }
+          })
+        }
       }
 
       return {

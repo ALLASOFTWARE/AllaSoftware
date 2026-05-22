@@ -153,6 +153,33 @@ export const excluirProduto = async (req, res) => {
       })
     }
 
+    const itensVenda = await prisma.itemVenda.count({
+      where: {
+        tipoItem: "produto",
+        referenciaId: Number(id),
+        venda: {
+          empresaId: req.empresaId
+        }
+      }
+    })
+
+    if (itensVenda > 0) {
+      const produtoInativado = await prisma.produto.update({
+        where: {
+          id: Number(id)
+        },
+        data: {
+          status: "inativo"
+        }
+      })
+
+      return res.json({
+        message: "Produto possui histórico e foi inativado com sucesso",
+        produto: produtoInativado,
+        inativado: true
+      })
+    }
+
     await prisma.produto.delete({
       where: {
         id: Number(id)

@@ -437,6 +437,12 @@ export const excluirAgendamento = async (req, res) => {
       })
     }
 
+    if (agendamentoExistente.status === "concluido" || agendamentoExistente.concluidoEm) {
+      return res.status(400).json({
+        error: "Agendamento concluído não pode ser excluído para preservar o histórico"
+      })
+    }
+
     await prisma.agendamento.delete({
       where: {
         id: Number(id)

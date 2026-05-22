@@ -1,5 +1,6 @@
 import prisma from "../config/prisma.js"
-import bcrypt from "bcryptjs"
+
+const statusPermitidosCliente = ["em_dia", "pendente", "inativo"]
 
 // Criar cliente
 export const criarCliente = async (req, res) => {
@@ -18,9 +19,9 @@ export const criarCliente = async (req, res) => {
       })
     }
 
-    if (status && !["em_dia", "pendente"].includes(status)) {
+    if (status && !statusPermitidosCliente.includes(status)) {
       return res.status(400).json({
-        error: "Status inválido. Use 'em_dia' ou 'pendente'"
+        error: "Status inválido. Use 'em_dia', 'pendente' ou 'inativo'"
       })
     }
 
@@ -88,9 +89,9 @@ export const atualizarCliente = async (req, res) => {
       observacoes
     } = req.body || {}
 
-    if (status && !["em_dia", "pendente"].includes(status)) {
+    if (status && !statusPermitidosCliente.includes(status)) {
       return res.status(400).json({
-        error: "Status inválido. Use 'em_dia' ou 'pendente'"
+        error: "Status inválido. Use 'em_dia', 'pendente' ou 'inativo'"
       })
     }
 
@@ -131,7 +132,6 @@ export const atualizarCliente = async (req, res) => {
 export const deletarCliente = async (req, res) => {
   try {
     const { id } = req.params
-    const { senhaConfirmacao } = req.body || {}
 
     const clienteExistente = await prisma.cliente.findFirst({
       where: {
@@ -146,87 +146,53 @@ export const deletarCliente = async (req, res) => {
       })
     }
 
-    // Verificar se tem contas pendentes/parciais/vencidas
-    const contasPendentes = await prisma.contaReceber.findMany({
-      where: {
-        clienteId: Number(id),
-        empresaId: req.empresaId,
-        status: {
-          in: ["pendente", "parcial", "vencido"]
-        }
-      }
-    })
-
-    // Se tem contas pendentes, exigir confirmação com senha
-    if (contasPendentes.length > 0) {
-      if (!senhaConfirmacao) {
-        return res.status(400).json({
-          error: "Cliente possui contas pendentes",
-          temContasPendentes: true,
-          mensagem: `Este cliente tem ${contasPendentes.length} conta(s) pendente(s). Para deletá-lo, você precisa confirmar digitando sua senha.`,
-          requerSenha: true
-        })
-      }
-
-      // Validar a senha do usuário autenticado
-      const usuario = await prisma.usuario.findFirst({
+    const [vendas, contasReceber, agendamentos] = await Promise.all([
+      prisma.venda.count({
         where: {
-          id: req.usuarioId,
+          clienteId: Number(id),
           empresaId: req.empresaId
         }
-      })
-
-      if (!usuario) {
-        return res.status(401).json({
-          error: "Usuário não encontrado"
-        })
-      }
-
-      const senhaValida = await bcrypt.compare(senhaConfirmacao, usuario.senha)
-
-      if (!senhaValida) {
-        return res.status(401).json({
-          error: "Senha incorreta"
-        })
-      }
-    }
-
-    // Deletar em cascata: pagamentos → contas → cliente
-    await prisma.$transaction(async (tx) => {
-      // 1. Encontrar todas as contas desse cliente
-      const contasDoCliente = await tx.contaReceber.findMany({
+      }),
+      prisma.contaReceber.count({
+        where: {
+          clienteId: Number(id),
+          empresaId: req.empresaId
+        }
+      }),
+      prisma.agendamento.count({
         where: {
           clienteId: Number(id),
           empresaId: req.empresaId
         }
       })
+    ])
 
-      // 2. Deletar todos os pagamentos dessas contas
-      for (const conta of contasDoCliente) {
-        await tx.pagamentoContaReceber.deleteMany({
-          where: {
-            contaReceberId: conta.id
-          }
-        })
-      }
+    const possuiHistorico = vendas > 0 || contasReceber > 0 || agendamentos > 0
 
-      // 3. Deletar todas as contas do cliente
-      await tx.contaReceber.deleteMany({
-        where: {
-          clienteId: Number(id),
-          empresaId: req.empresaId
-        }
-      })
-
-      // 4. Deletar o cliente
-      await tx.cliente.delete({
+    if (possuiHistorico) {
+      const clienteInativado = await prisma.cliente.update({
         where: {
           id: Number(id)
+        },
+        data: {
+          status: "inativo"
         }
       })
+
+      return res.json({
+        message: "Cliente possui histórico e foi inativado com sucesso",
+        cliente: clienteInativado,
+        inativado: true
+      })
+    }
+
+    await prisma.cliente.delete({
+      where: {
+        id: Number(id)
+      }
     })
 
-    res.json({ message: "Cliente deletado com sucesso" })
+    res.json({ message: "Cliente excluído com sucesso" })
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: "Erro ao deletar cliente" })

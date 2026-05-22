@@ -149,6 +149,41 @@ export const excluirServico = async (req, res) => {
       })
     }
 
+    const [agendamentos, itensVenda] = await Promise.all([
+      prisma.agendamento.count({
+        where: {
+          servicoId: Number(id),
+          empresaId: req.empresaId
+        }
+      }),
+      prisma.itemVenda.count({
+        where: {
+          tipoItem: "servico",
+          referenciaId: Number(id),
+          venda: {
+            empresaId: req.empresaId
+          }
+        }
+      })
+    ])
+
+    if (agendamentos > 0 || itensVenda > 0) {
+      const servicoInativado = await prisma.servico.update({
+        where: {
+          id: Number(id)
+        },
+        data: {
+          status: "inativo"
+        }
+      })
+
+      return res.json({
+        message: "Serviço possui histórico e foi inativado com sucesso",
+        servico: servicoInativado,
+        inativado: true
+      })
+    }
+
     await prisma.servico.delete({
       where: {
         id: Number(id)
