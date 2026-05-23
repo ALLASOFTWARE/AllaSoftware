@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import AppLayout from "../layouts/AppLayout"
 import api from "../services/api"
 import {
@@ -20,24 +20,54 @@ import { formatarMoeda, formatarFormaPagamento } from "../utils/formatters"
  * gráficos preservados (Recharts) e seções com hierarquia clara.
  */
 export default function DashboardFinanceiro() {
+  const usuario = useMemo(
+    () => JSON.parse(localStorage.getItem("usuario") || "null"),
+    []
+  )
   const [dados, setDados] = useState(null)
+  const [profissionais, setProfissionais] = useState([])
+  const [profissionalId, setProfissionalId] = useState(
+    usuario?.role === "admin" ? "empresa" : String(usuario?.id || "")
+  )
   const [loading, setLoading] = useState(true)
   const [periodo, setPeriodo] = useState("mes") // hoje | 7d | mes
 
-  useEffect(() => {
-    carregarDados()
+  const carregarProfissionais = useCallback(async () => {
+    try {
+      const response = await api.get("/profissionais")
+      setProfissionais(response.data || [])
+    } catch (error) {
+      console.error("Erro ao carregar profissionais:", error)
+    }
   }, [])
 
-  const carregarDados = async () => {
+  const carregarDados = useCallback(async () => {
     try {
-      const response = await api.get("/dashboard/financeiro")
+      setLoading(true)
+      const params = {}
+
+      if (profissionalId && profissionalId !== "empresa") {
+        params.profissionalId = profissionalId
+      }
+
+      const response = await api.get("/dashboard/financeiro", { params })
       setDados(response.data)
     } catch (error) {
       console.error("Erro ao carregar dashboard financeiro:", error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [profissionalId])
+
+  useEffect(() => {
+    if (usuario?.role === "admin") {
+      carregarProfissionais()
+    }
+  }, [carregarProfissionais, usuario?.role])
+
+  useEffect(() => {
+    carregarDados()
+  }, [carregarDados])
 
   const formatarDataCurta = (data) => {
     if (!data) return "-"
@@ -98,11 +128,30 @@ export default function DashboardFinanceiro() {
             Dashboard Financeiro
           </h1>
           <p className="text-xs text-gray-500 mt-0.5">
-            Entradas, saídas, lucro, cobranças e formas de pagamento.
+            {dados?.escopo?.tipo === "profissional"
+              ? `Visão de ${dados?.escopo?.profissional?.nome || "profissional"}`
+              : "Entradas, saídas, lucro, cobranças e formas de pagamento."}
           </p>
         </div>
 
-        <PeriodoSwitch value={periodo} onChange={setPeriodo} />
+        <div className="flex flex-wrap items-center gap-2">
+          {usuario?.role === "admin" && (
+            <select
+              value={profissionalId}
+              onChange={(e) => setProfissionalId(e.target.value)}
+              className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-xs font-medium text-[#2D2E47] shadow-sm outline-none focus:ring-2 focus:ring-[#2F8AA3]/30"
+            >
+              <option value="empresa">Empresa geral</option>
+              {profissionais.map((profissional) => (
+                <option key={profissional.id} value={profissional.id}>
+                  {profissional.nome}
+                </option>
+              ))}
+            </select>
+          )}
+
+          <PeriodoSwitch value={periodo} onChange={setPeriodo} />
+        </div>
       </div>
 
       {/* Resultado por período */}

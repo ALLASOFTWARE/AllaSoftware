@@ -42,8 +42,109 @@ const formatarDia = (data) => {
   return data.toISOString().slice(0, 10)
 }
 
+const obterEscopoProfissional = async (req) => {
+  if (req.role !== "admin") {
+    return req.usuarioId ? Number(req.usuarioId) : null
+  }
+
+  const { profissionalId } = req.query || {}
+
+  if (!profissionalId || profissionalId === "empresa") {
+    return null
+  }
+
+  const profissional = await prisma.usuario.findFirst({
+    where: {
+      id: Number(profissionalId),
+      empresaId: req.empresaId,
+      status: "ativo",
+      profissional: true
+    },
+    select: {
+      id: true,
+      nome: true
+    }
+  })
+
+  if (!profissional) {
+    const error = new Error("Profissional não encontrado")
+    error.statusCode = 404
+    throw error
+  }
+
+  return profissional.id
+}
+
+const criarWhereVendaProfissional = ({ empresaId, profissionalId, dataInicial }) => {
+  const where = {
+    empresaId,
+    OR: [
+      { vendedorId: profissionalId },
+      { agendamento: { is: { profissionalId } } }
+    ]
+  }
+
+  if (dataInicial) {
+    where.createdAt = {
+      gte: dataInicial
+    }
+  }
+
+  return where
+}
+
+const calcularValorRecebidoVenda = (venda) => {
+  if (!venda.contaReceber) {
+    return Number(venda.totalFinal || 0)
+  }
+
+  const valorTotalConta = Number(venda.contaReceber.valorTotal || 0)
+  const valorPagoConta = Number(venda.contaReceber.valorPago || 0)
+
+  if (valorTotalConta <= 0 || valorPagoConta <= 0) {
+    return 0
+  }
+
+  const proporcaoPaga = Math.min(valorPagoConta / valorTotalConta, 1)
+  return Number(venda.totalFinal || 0) * proporcaoPaga
+}
+
+const calcularResumoProfissional = (vendas, itensVenda) => {
+  const entradas = vendas.reduce((total, venda) => {
+    return total + calcularValorRecebidoVenda(venda)
+  }, 0)
+
+  const saidas = itensVenda.reduce((total, item) => {
+    return total + Number(item.custoTotal || 0)
+  }, 0)
+
+  return {
+    entradas,
+    saidas,
+    lucro: entradas - saidas
+  }
+}
+
+const montarTransacoesProfissional = (vendas) => {
+  return vendas.slice(0, 5).map((venda) => ({
+    id: venda.id,
+    tipo: "entrada",
+    valor: calcularValorRecebidoVenda(venda),
+    categoria: venda.agendamento ? "Serviço" : "Venda",
+    descricao: venda.agendamento
+      ? `Agendamento #${venda.agendamento.id}`
+      : `Venda #${venda.id}`,
+    formaPagamento: null,
+    status: "ativa",
+    empresaId: venda.empresaId,
+    createdAt: venda.createdAt
+  }))
+}
+
 export const dashboardFinanceiro = async (req, res) => {
   try {
+    const profissionalIdEscopo = await obterEscopoProfissional(req)
+
     const contasDaEmpresa = await prisma.contaReceber.findMany({
       where: {
         empresaId: req.empresaId
@@ -87,6 +188,188 @@ export const dashboardFinanceiro = async (req, res) => {
       1,
       0, 0, 0, 0
     )
+
+    if (profissionalIdEscopo) {
+      const selectProfissional = await prisma.usuario.findFirst({
+        where: {
+          id: profissionalIdEscopo,
+          empresaId: req.empresaId
+        },
+        select: {
+          id: true,
+          nome: true
+        }
+      })
+
+      const vendaInclude = {
+        contaReceber: true,
+        agendamento: {
+          select: {
+            id: true,
+            profissionalId: true
+          }
+        }
+      }
+
+      const vendaWhereHoje = criarWhereVendaProfissional({
+        empresaId: req.empresaId,
+        profissionalId: profissionalIdEscopo,
+        dataInicial: inicioHoje
+      })
+
+      const vendaWhereSeteDias = criarWhereVendaProfissional({
+        empresaId: req.empresaId,
+        profissionalId: profissionalIdEscopo,
+        dataInicial: inicioSeteDias
+      })
+
+      const vendaWhereMes = criarWhereVendaProfissional({
+        empresaId: req.empresaId,
+        profissionalId: profissionalIdEscopo,
+        dataInicial: inicioMes
+      })
+
+      const [vendasHoje, vendasSeteDias, vendasMes, itensVendaHoje, itensVendaSeteDias, itensVendaMes] =
+        await Promise.all([
+          prisma.venda.findMany({
+            where: vendaWhereHoje,
+            include: vendaInclude,
+            orderBy: { createdAt: "desc" }
+          }),
+          prisma.venda.findMany({
+            where: vendaWhereSeteDias,
+            include: vendaInclude,
+            orderBy: { createdAt: "desc" }
+          }),
+          prisma.venda.findMany({
+            where: vendaWhereMes,
+            include: vendaInclude,
+            orderBy: { createdAt: "desc" }
+          }),
+          prisma.itemVenda.findMany({
+            where: {
+              venda: vendaWhereHoje
+            },
+            include: {
+              venda: true
+            }
+          }),
+          prisma.itemVenda.findMany({
+            where: {
+              venda: vendaWhereSeteDias
+            },
+            include: {
+              venda: true
+            }
+          }),
+          prisma.itemVenda.findMany({
+            where: {
+              venda: vendaWhereMes
+            },
+            include: {
+              venda: true
+            }
+          })
+        ])
+
+      const contasMap = new Map()
+
+      vendasMes.forEach((venda) => {
+        if (venda.contaReceber) {
+          contasMap.set(venda.contaReceber.id, venda.contaReceber)
+        }
+      })
+
+      const contasEscopo = Array.from(contasMap.values())
+      const contasPendentes = contasEscopo.filter((conta) => conta.status === "pendente").length
+      const contasParciais = contasEscopo.filter((conta) => conta.status === "parcial").length
+      const contasPagas = contasEscopo.filter((conta) => conta.status === "pago").length
+      const contasVencidas = contasEscopo.filter((conta) => conta.status === "vencido").length
+      const totalEmAberto = contasEscopo
+        .filter((conta) => ["pendente", "parcial", "vencido"].includes(conta.status))
+        .reduce((total, conta) => total + (Number(conta.valorTotal || 0) - Number(conta.valorPago || 0)), 0)
+      const totalVencido = contasEscopo
+        .filter((conta) => conta.status === "vencido")
+        .reduce((total, conta) => total + (Number(conta.valorTotal || 0) - Number(conta.valorPago || 0)), 0)
+
+      const resumoHojeCaixa = calcularResumoProfissional(vendasHoje, itensVendaHoje)
+      const resumoSeteDiasCaixa = calcularResumoProfissional(vendasSeteDias, itensVendaSeteDias)
+      const resumoMesCaixa = calcularResumoProfissional(vendasMes, itensVendaMes)
+
+      const resumoHojeVendas = calcularResumoVendas(itensVendaHoje)
+      const resumoSeteDiasVendas = calcularResumoVendas(itensVendaSeteDias)
+      const resumoMesVendas = calcularResumoVendas(itensVendaMes)
+
+      const grafico7Dias = []
+
+      for (let i = 0; i < 7; i++) {
+        const inicioDia = new Date(inicioSeteDias)
+        inicioDia.setDate(inicioSeteDias.getDate() + i)
+        inicioDia.setHours(0, 0, 0, 0)
+
+        const fimDia = new Date(inicioDia)
+        fimDia.setHours(23, 59, 59, 999)
+
+        const vendasDoDia = vendasSeteDias.filter((venda) => {
+          const data = new Date(venda.createdAt)
+          return data >= inicioDia && data <= fimDia
+        })
+
+        const itensVendaDoDia = itensVendaSeteDias.filter((item) => {
+          const data = new Date(item.venda.createdAt)
+          return data >= inicioDia && data <= fimDia
+        })
+
+        const resumoDia = calcularResumoProfissional(vendasDoDia, itensVendaDoDia)
+        const resumoVendasDoDia = calcularResumoVendas(itensVendaDoDia)
+
+        grafico7Dias.push({
+          dia: formatarDia(inicioDia),
+          entradas: resumoDia.entradas,
+          saidas: resumoDia.saidas,
+          lucro: resumoDia.lucro,
+          saldoCaixa: resumoDia.lucro,
+          lucroBrutoVendas: resumoVendasDoDia.lucroBrutoVendas,
+          custoProdutosVendidos: resumoVendasDoDia.custoProdutosVendidos,
+          faturamentoVendas: resumoVendasDoDia.faturamentoVendas
+        })
+      }
+
+      const entradasMes = resumoMesCaixa.entradas
+      const formasPagamento = entradasMes > 0 ? { recebido: entradasMes } : {}
+
+      return res.json({
+        escopo: {
+          tipo: "profissional",
+          profissional: selectProfissional
+        },
+        hoje: {
+          ...resumoHojeCaixa,
+          saldoCaixa: resumoHojeCaixa.lucro,
+          ...resumoHojeVendas
+        },
+        seteDias: {
+          ...resumoSeteDiasCaixa,
+          saldoCaixa: resumoSeteDiasCaixa.lucro,
+          ...resumoSeteDiasVendas
+        },
+        mes: {
+          ...resumoMesCaixa,
+          saldoCaixa: resumoMesCaixa.lucro,
+          ...resumoMesVendas
+        },
+        clientesPendentes: 0,
+        contasPendentes,
+        contasParciais,
+        contasPagas,
+        contasVencidas,
+        totalEmAberto,
+        totalVencido,
+        ultimasTransacoes: montarTransacoesProfissional(vendasMes),
+        grafico7Dias,
+        formasPagamento
+      })
+    }
 
     const whereBase = {
       empresaId: req.empresaId,
@@ -314,6 +597,12 @@ export const dashboardFinanceiro = async (req, res) => {
     })
   } catch (error) {
     console.error(error)
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        error: error.message
+      })
+    }
+
     res.status(500).json({
       error: "Erro ao carregar dashboard financeiro"
     })
