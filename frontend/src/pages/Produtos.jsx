@@ -28,6 +28,7 @@ export default function Produtos() {
   const [mostrarNovoModal, setMostrarNovoModal] = useState(false)
   const [mostrarEditarModal, setMostrarEditarModal] = useState(false)
   const [aviso, setAviso] = useState(null)
+  const [salvando, setSalvando] = useState(false)
 
   const [novoProduto, setNovoProduto] = useState({
     nome: "",
@@ -127,8 +128,10 @@ export default function Produtos() {
 
   const salvarNovoProduto = async (e) => {
     e.preventDefault()
+    if (salvando) return
 
     try {
+      setSalvando(true)
       await api.post("/produtos", {
         nome: novoProduto.nome,
         descricao: novoProduto.descricao,
@@ -163,13 +166,17 @@ export default function Produtos() {
     } catch (error) {
       console.error("Erro ao criar produto:", error)
       setAviso({ titulo: "Erro", mensagem: error.response?.data?.error || "Erro ao criar produto" })
+    } finally {
+      setSalvando(false)
     }
   }
 
   const salvarEdicaoProduto = async (e) => {
     e.preventDefault()
+    if (salvando) return
 
     try {
+      setSalvando(true)
       await api.put(`/produtos/${produtoEditando.id}`, {
         nome: produtoEditando.nome,
         descricao: produtoEditando.descricao,
@@ -193,6 +200,8 @@ export default function Produtos() {
     } catch (error) {
       console.error("Erro ao editar produto:", error)
       setAviso({ titulo: "Erro", mensagem: error.response?.data?.error || "Erro ao editar produto" })
+    } finally {
+      setSalvando(false)
     }
   }
 
@@ -630,9 +639,10 @@ export default function Produtos() {
 
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl bg-[#2F8AA3] text-white hover:opacity-90"
+                disabled={salvando}
+                className="px-5 py-2.5 rounded-xl bg-[#2F8AA3] text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Salvar Produto
+                {salvando ? "Salvando..." : "Salvar Produto"}
               </button>
             </div>
           </form>
@@ -761,9 +771,10 @@ export default function Produtos() {
 
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl bg-[#2F8AA3] text-white hover:opacity-90"
+                disabled={salvando}
+                className="px-5 py-2.5 rounded-xl bg-[#2F8AA3] text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Salvar Alterações
+                {salvando ? "Salvando..." : "Salvar Alterações"}
               </button>
             </div>
           </form>

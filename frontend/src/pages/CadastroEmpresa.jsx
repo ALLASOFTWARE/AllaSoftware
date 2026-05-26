@@ -8,11 +8,14 @@ export default function CadastroEmpresa() {
   const [email, setEmail] = useState("")
   const [senha, setSenha] = useState("")
   const [aviso, setAviso] = useState(null)
+  const [cadastrando, setCadastrando] = useState(false)
 
   const handleCadastro = async (e) => {
     e.preventDefault()
+    if (cadastrando) return
 
     try {
+      setCadastrando(true)
       const response = await api.post("/register", {
         nomeEmpresa,
         nomeUsuario,
@@ -39,6 +42,8 @@ export default function CadastroEmpresa() {
         mensagem,
         redirecionarParaLogin
       })
+    } finally {
+      setCadastrando(false)
     }
   }
 
@@ -112,9 +117,10 @@ export default function CadastroEmpresa() {
 
         <button
           type="submit"
-          className="w-full bg-[#3E7996] text-white py-3 rounded-lg font-medium hover:opacity-90"
+          disabled={cadastrando}
+          className="w-full bg-[#3E7996] text-white py-3 rounded-lg font-medium hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          Cadastrar
+          {cadastrando ? "Cadastrando..." : "Cadastrar"}
         </button>
 
         <p className="text-sm text-center text-gray-600 mt-4">

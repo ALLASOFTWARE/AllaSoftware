@@ -8,11 +8,14 @@ export default function Login() {
   const [email, setEmail] = useState("")
   const [senha, setSenha] = useState("")
   const [aviso, setAviso] = useState(null)
+  const [entrando, setEntrando] = useState(false)
 
   const handleLogin = async (e) => {
     e.preventDefault()
+    if (entrando) return
 
     try {
+      setEntrando(true)
       const response = await api.post("/login-usuario", {
         email,
         senha
@@ -30,6 +33,8 @@ export default function Login() {
     } catch (error) {
       console.error("Erro no login:", error)
       setAviso({ titulo: "Erro", mensagem: error.response?.data?.error || "Erro no login" })
+    } finally {
+      setEntrando(false)
     }
   }
 
@@ -71,9 +76,10 @@ export default function Login() {
 
         <button
           type="submit"
-          className="w-full bg-[#3E7996] text-white py-3 rounded-lg font-medium hover:opacity-90"
+          disabled={entrando}
+          className="w-full bg-[#3E7996] text-white py-3 rounded-lg font-medium hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          Entrar
+          {entrando ? "Entrando..." : "Entrar"}
         </button>
 
         <p className="text-sm text-center text-gray-600 mt-4">

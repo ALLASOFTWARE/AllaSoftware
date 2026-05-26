@@ -31,6 +31,8 @@ export default function Clientes() {
   const [clienteParaDeletar, setClienteParaDeletar] = useState(null)
   const [mensagemConfirmacao, setMensagemConfirmacao] = useState("")
   const [aviso, setAviso] = useState(null)
+  const [salvando, setSalvando] = useState(false)
+  const [excluindo, setExcluindo] = useState(false)
   const podeCriar = podeAcessar("clientes", "criar")
   const podeEditar = podeAcessar("clientes", "editar")
   const podeExcluir = podeAcessar("clientes", "excluir")
@@ -116,8 +118,10 @@ export default function Clientes() {
 
   const salvarNovoCliente = async (e) => {
     e.preventDefault()
+    if (salvando) return
 
     try {
+      setSalvando(true)
       await api.post("/clientes", novoCliente)
 
       setNovoCliente({ nome: "", telefone: "", email: "", observacoes: "" })
@@ -126,13 +130,17 @@ export default function Clientes() {
     } catch (error) {
       console.error("Erro ao criar cliente:", error)
       setAviso({ titulo: "Erro", mensagem: error.response?.data?.error || "Erro ao criar cliente" })
+    } finally {
+      setSalvando(false)
     }
   }
 
   const salvarEdicaoCliente = async (e) => {
     e.preventDefault()
+    if (salvando) return
 
     try {
+      setSalvando(true)
       await api.put(`/clientes/${clienteEditando.id}`, {
         nome: clienteEditando.nome,
         telefone: clienteEditando.telefone,
@@ -145,6 +153,8 @@ export default function Clientes() {
     } catch (error) {
       console.error("Erro ao editar cliente:", error)
       setAviso({ titulo: "Erro", mensagem: error.response?.data?.error || "Erro ao editar cliente" })
+    } finally {
+      setSalvando(false)
     }
   }
 
@@ -154,7 +164,10 @@ export default function Clientes() {
   }
 
   const confirmarExclusaoSimples = async () => {
+    if (excluindo) return
+
     try {
+      setExcluindo(true)
       await api.delete(`/clientes/${clienteParaDeletar.id}`)
       setMostrarModalSimples(false)
       setClienteParaDeletar(null)
@@ -172,16 +185,21 @@ export default function Clientes() {
         console.error("Erro ao excluir cliente:", error)
         setAviso({ titulo: "Erro", mensagem: dados.error || "Erro ao excluir cliente" })
       }
+    } finally {
+      setExcluindo(false)
     }
   }
 
   const confirmarExclusaoComSenha = async () => {
+    if (excluindo) return
+
     if (!senhaConfirmacao) {
       setAviso({ titulo: "Erro", mensagem: "Digite sua senha para confirmar" })
       return
     }
 
     try {
+      setExcluindo(true)
       await api.delete(`/clientes/${clienteParaDeletar.id}`, {
         data: { senhaConfirmacao }
       })
@@ -195,6 +213,8 @@ export default function Clientes() {
       console.error("Erro ao excluir cliente:", error)
       setAviso({ titulo: "Erro", mensagem: error.response?.data?.error || "Erro ao excluir cliente" })
       setSenhaConfirmacao("")
+    } finally {
+      setExcluindo(false)
     }
   }
 
@@ -511,9 +531,10 @@ export default function Clientes() {
 
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl bg-[#2F8AA3] text-white hover:opacity-90"
+                disabled={salvando}
+                className="px-5 py-2.5 rounded-xl bg-[#2F8AA3] text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Salvar Cliente
+                {salvando ? "Salvando..." : "Salvar Cliente"}
               </button>
             </div>
           </form>
@@ -571,9 +592,10 @@ export default function Clientes() {
 
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl bg-[#2F8AA3] text-white hover:opacity-90"
+                disabled={salvando}
+                className="px-5 py-2.5 rounded-xl bg-[#2F8AA3] text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Salvar Alterações
+                {salvando ? "Salvando..." : "Salvar Alterações"}
               </button>
             </div>
           </form>
@@ -611,9 +633,10 @@ export default function Clientes() {
               <button
                 type="button"
                 onClick={confirmarExclusaoSimples}
-                className="px-5 py-2.5 rounded-xl bg-red-600 text-white hover:opacity-90"
+                disabled={excluindo}
+                className="px-5 py-2.5 rounded-xl bg-red-600 text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Excluir cliente
+                {excluindo ? "Excluindo..." : "Excluir cliente"}
               </button>
             </div>
           </div>
@@ -655,9 +678,10 @@ export default function Clientes() {
               <button
                 type="button"
                 onClick={confirmarExclusaoComSenha}
-                className="px-5 py-2.5 rounded-xl bg-red-600 text-white hover:opacity-90"
+                disabled={excluindo}
+                className="px-5 py-2.5 rounded-xl bg-red-600 text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Deletar cliente
+                {excluindo ? "Deletando..." : "Deletar cliente"}
               </button>
             </div>
           </div>
