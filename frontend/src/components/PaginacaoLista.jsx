@@ -24,6 +24,7 @@ export default function PaginacaoLista({
         <select
           value={porPagina}
           onChange={(e) => onPorPaginaChange(Number(e.target.value))}
+          aria-label="Itens por página"
           className="w-36 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-[#2D2E47] outline-none focus:ring-2 focus:ring-[#3E7996] sm:w-32"
         >
           <option value={5}>5 por pág.</option>

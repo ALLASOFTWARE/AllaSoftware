@@ -71,6 +71,25 @@ export default function AppLayout({ children }) {
     }
   }, [menuMobileAberto])
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(min-width: 768px)")
+    const fecharMenuNoDesktop = (event) => {
+      if (event.matches) {
+        setMenuMobileAberto(false)
+      }
+    }
+
+    if (mediaQuery.matches) {
+      setMenuMobileAberto(false)
+    }
+
+    mediaQuery.addEventListener("change", fecharMenuNoDesktop)
+
+    return () => {
+      mediaQuery.removeEventListener("change", fecharMenuNoDesktop)
+    }
+  }, [])
+
   const nomeUsuario = usuario?.nome || "Usuário"
   const emailUsuario = usuario?.email || "Email não informado"
 
