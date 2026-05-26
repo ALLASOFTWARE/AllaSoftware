@@ -28,6 +28,7 @@ export default function Servicos() {
   const [mostrarNovoModal, setMostrarNovoModal] = useState(false)
   const [mostrarEditarModal, setMostrarEditarModal] = useState(false)
   const [aviso, setAviso] = useState(null)
+  const [salvando, setSalvando] = useState(false)
 
   const [novoServico, setNovoServico] = useState({
     nome: "",
@@ -91,8 +92,10 @@ export default function Servicos() {
 
   const salvarNovoServico = async (e) => {
     e.preventDefault()
+    if (salvando) return
 
     try {
+      setSalvando(true)
       await api.post("/servicos", {
         nome: novoServico.nome,
         descricao: novoServico.descricao,
@@ -119,13 +122,17 @@ export default function Servicos() {
     } catch (error) {
       console.error("Erro ao criar serviço:", error)
       setAviso({ titulo: "Erro", mensagem: error.response?.data?.error || "Erro ao criar serviço" })
+    } finally {
+      setSalvando(false)
     }
   }
 
   const salvarEdicaoServico = async (e) => {
     e.preventDefault()
+    if (salvando) return
 
     try {
+      setSalvando(true)
       await api.put(`/servicos/${servicoEditando.id}`, {
         nome: servicoEditando.nome,
         descricao: servicoEditando.descricao,
@@ -145,6 +152,8 @@ export default function Servicos() {
     } catch (error) {
       console.error("Erro ao editar serviço:", error)
       setAviso({ titulo: "Erro", mensagem: error.response?.data?.error || "Erro ao editar serviço" })
+    } finally {
+      setSalvando(false)
     }
   }
 
@@ -566,9 +575,10 @@ export default function Servicos() {
 
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl bg-[#2F8AA3] text-white hover:opacity-90"
+                disabled={salvando}
+                className="px-5 py-2.5 rounded-xl bg-[#2F8AA3] text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Salvar Serviço
+                {salvando ? "Salvando..." : "Salvar Serviço"}
               </button>
             </div>
           </form>
@@ -669,9 +679,10 @@ export default function Servicos() {
 
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl bg-[#2F8AA3] text-white hover:opacity-90"
+                disabled={salvando}
+                className="px-5 py-2.5 rounded-xl bg-[#2F8AA3] text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Salvar Alterações
+                {salvando ? "Salvando..." : "Salvar Alterações"}
               </button>
             </div>
           </form>

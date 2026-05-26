@@ -145,6 +145,8 @@ export default function Vendas() {
   const podePagar = itens.length > 0 && totalFinal >= 0
 
   const salvarVenda = async () => {
+    if (salvando) return
+
     if (!podeCriar) {
       setAviso({ titulo: "Acesso negado", mensagem: "Voce nao tem permissao para criar vendas." })
       return

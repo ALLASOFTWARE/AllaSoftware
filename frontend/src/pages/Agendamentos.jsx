@@ -206,6 +206,8 @@ export default function Agendamentos() {
 
   const salvarAgendamento = async (e) => {
     e.preventDefault()
+    if (salvando) return
+
     if (!form.titulo.trim()) {
       setAviso({ titulo: "Atenção", mensagem: "Informe o título do agendamento." })
       return
@@ -268,12 +270,15 @@ export default function Agendamentos() {
 }
 
   const atualizarStatus = async (agendamento, novoStatus) => {
+    if (salvando) return
+
     if (novoStatus === "concluido") {
       abrirConclusaoAgendamento(agendamento)
       return
     }
 
     try {
+      setSalvando(true)
       await api.put(`/agendamentos/${agendamento.id}`, { status: novoStatus })
       setAgendamentoSelecionado(null)
       carregarAgendamentos()
@@ -283,11 +288,14 @@ export default function Agendamentos() {
         titulo: "Erro",
         mensagem: error.response?.data?.error || "Erro ao atualizar status"
       })
+    } finally {
+      setSalvando(false)
     }
   }
 
   const concluirAgendamento = async (e) => {
     e.preventDefault()
+    if (salvando) return
 
     if (!agendamentoConcluir) return
 
