@@ -6,6 +6,7 @@ export default function ClienteSearchSelect({
   buscaInicial = "",
   placeholder = "Buscar cliente...",
   permitirSemCliente = true,
+  inputClassName = "w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#3E7996]",
   onSelect
 }) {
   const [busca, setBusca] = useState("")
@@ -47,7 +48,7 @@ export default function ClienteSearchSelect({
         }}
         onFocus={() => setMostrar(true)}
         placeholder={placeholder}
-        className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[#3E7996]"
+        className={`${inputClassName} ${busca ? "pr-9" : ""}`}
       />
 
       {/* Botão limpar */}
