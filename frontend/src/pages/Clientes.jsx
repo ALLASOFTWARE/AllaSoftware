@@ -42,6 +42,7 @@ export default function Clientes() {
     telefone: "",
     email: "",
     observacoes: "",
+    whatsappOptIn: true,
   })
 
   const [clienteEditando, setClienteEditando] = useState({
@@ -50,6 +51,7 @@ export default function Clientes() {
     telefone: "",
     email: "",
     observacoes: "",
+    whatsappOptIn: true,
   })
 
   useEffect(() => {
@@ -112,6 +114,7 @@ export default function Clientes() {
       telefone: cliente.telefone || "",
       email: cliente.email || "",
       observacoes: cliente.observacoes || "",
+      whatsappOptIn: cliente.whatsappOptIn !== false,
     })
     setMostrarEditarModal(true)
   }
@@ -124,7 +127,7 @@ export default function Clientes() {
       setSalvando(true)
       await api.post("/clientes", novoCliente)
 
-      setNovoCliente({ nome: "", telefone: "", email: "", observacoes: "" })
+      setNovoCliente({ nome: "", telefone: "", email: "", observacoes: "", whatsappOptIn: true })
       setMostrarNovoModal(false)
       carregarClientes()
     } catch (error) {
@@ -146,6 +149,7 @@ export default function Clientes() {
         telefone: clienteEditando.telefone,
         email: clienteEditando.email,
         observacoes: clienteEditando.observacoes,
+        whatsappOptIn: clienteEditando.whatsappOptIn,
       })
 
       setMostrarEditarModal(false)
@@ -520,6 +524,16 @@ export default function Clientes() {
               placeholder="Anotações sobre o cliente (opcional)"
             />
 
+            <label className="flex items-center gap-2 text-sm text-gray-600">
+              <input
+                type="checkbox"
+                checked={novoCliente.whatsappOptIn}
+                onChange={(e) => setNovoCliente({ ...novoCliente, whatsappOptIn: e.target.checked })}
+                className="h-4 w-4 rounded border-gray-300 text-[#2F8AA3]"
+              />
+              Cliente autoriza receber confirmações e lembretes por WhatsApp
+            </label>
+
             <div className="flex justify-end gap-3 pt-2">
               <button
                 type="button"
@@ -580,6 +594,16 @@ export default function Clientes() {
               onChange={(e) => setClienteEditando({ ...clienteEditando, observacoes: e.target.value })}
               placeholder="Anotações sobre o cliente"
             />
+
+            <label className="flex items-center gap-2 text-sm text-gray-600">
+              <input
+                type="checkbox"
+                checked={clienteEditando.whatsappOptIn}
+                onChange={(e) => setClienteEditando({ ...clienteEditando, whatsappOptIn: e.target.checked })}
+                className="h-4 w-4 rounded border-gray-300 text-[#2F8AA3]"
+              />
+              Cliente autoriza receber confirmações e lembretes por WhatsApp
+            </label>
 
             <div className="flex justify-end gap-3 pt-2">
               <button

@@ -26,6 +26,8 @@ model Empresa {
 
   usuarios Usuario[]
   comissoes Comissao[]
+  whatsappConfig EmpresaWhatsApp?
+  mensagensWhatsApp MensagemWhatsApp[]
 }
 
 model Usuario {
@@ -60,12 +62,14 @@ model Cliente {
   email       String?
   status      String   @default("em_dia")
   observacoes String?
+  whatsappOptIn Boolean @default(true)
   empresaId   Int
   createdAt   DateTime @default(now())
 
   contasReceber ContaReceber[]
   agendamentos Agendamento[]
   vendas Venda[]
+  mensagensWhatsApp MensagemWhatsApp[]
 }
 
 model Transacao {
@@ -225,6 +229,7 @@ model Agendamento {
   profissional   Usuario? @relation("ProfissionalAgendamentos", fields: [profissionalId], references: [id])
   venda          Venda?   @relation(fields: [vendaId], references: [id])
   comissoes      Comissao[]
+  mensagensWhatsApp MensagemWhatsApp[]
 
   @@index([empresaId])
   @@index([clienteId])
@@ -232,6 +237,58 @@ model Agendamento {
   @@index([profissionalId])
   @@index([status])
   @@index([dataHora])
+}
+
+model EmpresaWhatsApp {
+  id                   Int      @id @default(autoincrement())
+  empresaId            Int      @unique
+  ativo                Boolean  @default(false)
+  numero               String?
+  nomeExibicao         String?
+  businessId           String?
+  wabaId               String?
+  phoneNumberId        String
+  accessTokenEncrypted String
+  templateConfirmacao  String   @default("agendamento_confirmado")
+  templateLembrete24h  String   @default("lembrete_agendamento_24h")
+  idioma               String   @default("pt_BR")
+  status               String   @default("manual")
+  ultimoErro           String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  empresa              Empresa  @relation(fields: [empresaId], references: [id])
+
+  @@index([empresaId])
+}
+
+model MensagemWhatsApp {
+  id                Int      @id @default(autoincrement())
+  empresaId         Int
+  agendamentoId     Int?
+  clienteId         Int?
+  tipo              String
+  canal             String   @default("whatsapp")
+  destino           String
+  templateName      String?
+  payload           Json?
+  status            String   @default("pendente")
+  providerMessageId String?
+  erro              String?
+  scheduledFor      DateTime?
+  enviadoEm         DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  empresa           Empresa @relation(fields: [empresaId], references: [id])
+  agendamento       Agendamento? @relation(fields: [agendamentoId], references: [id])
+  cliente           Cliente? @relation(fields: [clienteId], references: [id])
+
+  @@index([empresaId])
+  @@index([agendamentoId])
+  @@index([clienteId])
+  @@index([status])
+  @@index([scheduledFor])
 }
 
 model Comissao {

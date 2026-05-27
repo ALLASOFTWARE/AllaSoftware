@@ -1,5 +1,6 @@
 import prisma from "../config/prisma.js"
 import { criarComissao } from "../services/comissaoService.js"
+import { enviarMensagemAgendamento } from "../services/whatsappService.js"
 
 const statusPermitidos = ["agendado", "concluido", "cancelado"]
 
@@ -147,6 +148,14 @@ export const criarAgendamento = async (req, res) => {
         },
         venda: true
       }
+    })
+
+    enviarMensagemAgendamento({
+      empresaId: req.empresaId,
+      agendamento,
+      tipo: "confirmacao"
+    }).catch((error) => {
+      console.error("Erro ao enviar confirmacao WhatsApp:", error)
     })
 
     res.status(201).json(agendamento)

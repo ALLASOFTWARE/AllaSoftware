@@ -9,6 +9,7 @@ import {
   Package,
   BadgeDollarSign,
   Menu,
+  MessageCircle,
   PanelLeftClose,
   ShoppingCart,
   Users
@@ -215,6 +216,23 @@ export default function Sidebar({ aberta = true, setAberta, tema = "escuro", mob
               </button>
           )}
             </div>
+          </div>
+        )}
+
+        {JSON.parse(localStorage.getItem("usuario") || "null")?.role === "admin" && (
+          <div className={`pt-3 mt-3 border-t ${dividerClass}`}>
+            <p className={`px-4 text-[11px] uppercase tracking-wide mb-2 ${secaoClass}`}>
+              Configurações
+            </p>
+
+            <button
+              type="button"
+              onClick={() => irPara("/whatsapp")}
+              className={getNavButtonClass("/whatsapp")}
+            >
+              <MessageCircle className="h-4 w-4" />
+              <span>WhatsApp</span>
+            </button>
           </div>
         )}
       </nav>

@@ -25,6 +25,7 @@ import Usuarios from "./pages/Usuarios"
 import Equipe from "./pages/Equipe"
 import Perfil from "./pages/Perfil"
 import Empresa from "./pages/Empresa"
+import WhatsAppConfig from "./pages/WhatsAppConfig"
 import AcessoNegado from "./pages/AcessoNegado"
 
 import PrivateRoute from "./routes/PrivateRoute"
@@ -65,6 +66,15 @@ function App() {
           element={
             <PrivateRoute>
               <Empresa />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/whatsapp"
+          element={
+            <PrivateRoute>
+              <WhatsAppConfig />
             </PrivateRoute>
           }
         />

@@ -10,7 +10,8 @@ export const criarCliente = async (req, res) => {
       telefone,
       email,
       status,
-      observacoes
+      observacoes,
+      whatsappOptIn
     } = req.body || {}
 
     if (!nome) {
@@ -32,6 +33,7 @@ export const criarCliente = async (req, res) => {
         email,
         status: status || "em_dia",
         observacoes,
+        whatsappOptIn: whatsappOptIn !== false,
         empresaId: req.empresaId
       }
     })
@@ -86,7 +88,8 @@ export const atualizarCliente = async (req, res) => {
       telefone,
       email,
       status,
-      observacoes
+      observacoes,
+      whatsappOptIn
     } = req.body || {}
 
     if (status && !statusPermitidosCliente.includes(status)) {
@@ -117,7 +120,9 @@ export const atualizarCliente = async (req, res) => {
         telefone,
         email,
         status,
-        observacoes
+        observacoes,
+        whatsappOptIn:
+          whatsappOptIn === undefined ? undefined : Boolean(whatsappOptIn)
       }
     })
 
