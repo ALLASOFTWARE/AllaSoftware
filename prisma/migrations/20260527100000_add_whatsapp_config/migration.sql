@@ -1,4 +1,4 @@
-﻿-- AlterTable
+-- AlterTable
 ALTER TABLE "Cliente" ADD COLUMN "whatsappOptIn" BOOLEAN NOT NULL DEFAULT true;
 
 -- CreateTable
