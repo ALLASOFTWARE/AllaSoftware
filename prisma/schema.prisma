@@ -26,6 +26,7 @@ model Empresa {
   whatsappConfig    EmpresaWhatsApp?
   mensagensWhatsApp MensagemWhatsApp[]
   usuarios          Usuario[]
+  contasPagar       ContaPagar[]
 }
 
 model Usuario {
@@ -77,6 +78,7 @@ model Transacao {
   status         String     @default("ativa")
   formaPagamento String?
   comissoes      Comissao[]
+  pagamentosContaPagar PagamentoContaPagar[]
 }
 
 model ContaReceber {
@@ -103,6 +105,44 @@ model PagamentoContaReceber {
   descricao      String?
   createdAt      DateTime     @default(now())
   contaReceber   ContaReceber @relation(fields: [contaReceberId], references: [id])
+}
+
+model ContaPagar {
+  id         Int                  @id @default(autoincrement())
+  empresaId  Int
+  fornecedor String?
+  descricao  String?
+  categoria  String?
+  valorTotal Float
+  valorPago  Float                @default(0)
+  status     String               @default("pendente")
+  vencimento DateTime?
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @default(now()) @updatedAt
+  empresa    Empresa              @relation(fields: [empresaId], references: [id])
+  pagamentos PagamentoContaPagar[]
+
+  @@index([empresaId])
+  @@index([status])
+  @@index([vencimento])
+  @@index([createdAt])
+}
+
+model PagamentoContaPagar {
+  id             Int         @id @default(autoincrement())
+  contaPagarId   Int
+  empresaId      Int
+  transacaoId    Int?
+  valor          Float
+  formaPagamento String?
+  descricao      String?
+  createdAt      DateTime    @default(now())
+  contaPagar     ContaPagar  @relation(fields: [contaPagarId], references: [id], onDelete: Cascade)
+  transacao      Transacao?  @relation(fields: [transacaoId], references: [id])
+
+  @@index([contaPagarId])
+  @@index([empresaId])
+  @@index([transacaoId])
 }
 
 model Servico {
