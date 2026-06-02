@@ -13,6 +13,7 @@ RUN npm install
 RUN npx prisma generate
 
 COPY src ./src
+COPY scripts ./scripts
 
 ENV NODE_ENV=production
 EXPOSE 3000
