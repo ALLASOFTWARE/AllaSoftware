@@ -13,6 +13,10 @@ model Empresa {
   email             String             @unique
   senha             String
   createdAt         DateTime           @default(now())
+  plano             String             @default("start")
+  statusAssinatura  String             @default("ativa")
+  limiteFuncionarios Int               @default(2)
+  dataVencimentoPlano DateTime?
   bairro            String?
   celular           String?
   cep               String?
@@ -27,6 +31,17 @@ model Empresa {
   mensagensWhatsApp MensagemWhatsApp[]
   usuarios          Usuario[]
   contasPagar       ContaPagar[]
+}
+
+model PlataformaUsuario {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  email     String   @unique
+  senha     String
+  role      String   @default("owner")
+  status    String   @default("ativo")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 model Usuario {

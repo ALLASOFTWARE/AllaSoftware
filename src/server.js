@@ -23,6 +23,7 @@ import agendamentoRoutes from "./routes/agendamentoRoutes.js"
 import comissaoRoutes from "./routes/comissaoRoutes.js"
 import whatsappRoutes from "./routes/whatsappRoutes.js"
 import { iniciarLembretesWhatsApp } from "./services/whatsappReminderJob.js"
+import plataformaRoutes from "./routes/plataformaRoutes.js"
 
 const app = express()
 
@@ -48,6 +49,7 @@ app.use(express.urlencoded({ limit: "10mb", extended: true }))
 app.use(limiterGeral)
 
 //  Rotas
+plataformaRoutes(app)
 authRoutes(app)
 passwordRoutes(app)
 clienteRoutes(app)

@@ -9,6 +9,14 @@ export const gerarAccessToken = (empresaId, usuarioId, role) => {
   )
 }
 
+export const gerarPlataformaAccessToken = (plataformaUsuarioId, role) => {
+  return jwt.sign(
+    { plataformaUsuarioId, role, tipo: "plataforma" },
+    process.env.JWT_SECRET,
+    { expiresIn: "2h" }
+  )
+}
+
 // Gerar Refresh Token (expires em 7 dias)
 export const gerarRefreshToken = (empresaId, usuarioId) => {
   return jwt.sign(

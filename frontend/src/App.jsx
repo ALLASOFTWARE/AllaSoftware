@@ -1,9 +1,10 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom"
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom"
 
 import Login from "./pages/Login"
 import EsqueceuSenha from "./pages/EsqueceuSenha"
 import ResetarSenha from "./pages/ResetarSenha"
-import CadastroEmpresa from "./pages/CadastroEmpresa"
+import PlataformaLogin from "./pages/PlataformaLogin"
+import PlataformaEmpresas from "./pages/PlataformaEmpresas"
 
 import Dashboard from "./pages/Dashboard"
 import Clientes from "./pages/Clientes"
@@ -30,6 +31,7 @@ import WhatsAppConfig from "./pages/WhatsAppConfig"
 import AcessoNegado from "./pages/AcessoNegado"
 
 import PrivateRoute from "./routes/PrivateRoute"
+import PlatformPrivateRoute from "./routes/PlatformPrivateRoute"
 import PermissaoRoute from "./components/PermissaoRoute"
 
 function App() {
@@ -38,9 +40,18 @@ function App() {
       <Routes>
         {/* Públicas */}
         <Route path="/" element={<Login />} />
-        <Route path="/cadastro-empresa" element={<CadastroEmpresa />} />
+        <Route path="/cadastro-empresa" element={<Navigate to="/" replace />} />
         <Route path="/esqueceu-senha" element={<EsqueceuSenha />} />
         <Route path="/resetar-senha" element={<ResetarSenha />} />
+        <Route path="/plataforma/login" element={<PlataformaLogin />} />
+        <Route
+          path="/plataforma/empresas"
+          element={
+            <PlatformPrivateRoute>
+              <PlataformaEmpresas />
+            </PlatformPrivateRoute>
+          }
+        />
 
         {/* Acesso negado */}
         <Route

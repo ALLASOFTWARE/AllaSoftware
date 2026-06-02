@@ -3,11 +3,11 @@ import api from "../services/api"
 import BrandLogo from "../components/BrandLogo"
 import ModalAviso from "../components/ModalAviso"
 
-export default function Login() {
+export default function PlataformaLogin() {
   const [email, setEmail] = useState("")
   const [senha, setSenha] = useState("")
-  const [aviso, setAviso] = useState(null)
   const [entrando, setEntrando] = useState(false)
+  const [aviso, setAviso] = useState(null)
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -15,23 +15,15 @@ export default function Login() {
 
     try {
       setEntrando(true)
-      const response = await api.post("/login-usuario", {
-        email,
-        senha
-      })
-
+      const response = await api.post("/plataforma/login", { email, senha })
       const { accessToken, usuario } = response.data
-
-      console.log("Login response:", response.data)
-      console.log("AccessToken salvo:", accessToken)
 
       localStorage.setItem("token", accessToken)
       localStorage.setItem("usuario", JSON.stringify(usuario))
-
-      window.location.href = "/dashboard"
+      window.location.href = "/plataforma/empresas"
     } catch (error) {
-      console.error("Erro no login:", error)
-      setAviso({ titulo: "Erro", mensagem: error.response?.data?.error || "Erro no login" })
+      console.error("Erro no login da plataforma:", error)
+      setAviso({ titulo: "Erro", mensagem: error.response?.data?.error || "Erro no login da plataforma" })
     } finally {
       setEntrando(false)
     }
@@ -43,16 +35,24 @@ export default function Login() {
         onSubmit={handleLogin}
         className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm border border-white/70"
       >
-        <BrandLogo variant="stacked" tone="dark" className="mx-auto mb-7 h-36 w-52" />
+        <BrandLogo variant="stacked" tone="dark" className="mx-auto mb-6 h-32 w-48" />
+
+        <h1 className="text-xl font-bold text-center text-[#2D2E47] mb-1">
+          Painel da Plataforma
+        </h1>
+        <p className="text-sm text-gray-500 text-center mb-6">
+          Acesso administrativo AllaSoftware
+        </p>
 
         <div className="mb-4">
           <label className="block text-sm text-gray-600 mb-1">Email</label>
           <input
             type="email"
-            placeholder="Digite seu email"
-            className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#3E7996]"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#3E7996]"
+            placeholder="Seu email administrativo"
+            required
           />
         </div>
 
@@ -60,17 +60,12 @@ export default function Login() {
           <label className="block text-sm text-gray-600 mb-1">Senha</label>
           <input
             type="password"
-            placeholder="Digite sua senha"
-            className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#3E7996]"
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
+            className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#3E7996]"
+            placeholder="Sua senha"
+            required
           />
-          <Link
-            to="/esqueceu-senha"
-            className="text-xs text-[#3E7996] hover:underline mt-1 inline-block"
-          >
-            Esqueceu a senha?
-          </Link>
         </div>
 
         <button
@@ -81,16 +76,16 @@ export default function Login() {
           {entrando ? "Entrando..." : "Entrar"}
         </button>
 
-        <p className="text-xs text-center text-gray-500 mt-4">
-          O acesso da empresa e criado pela AllaSoftware.
-        </p>
+        <button
+          type="button"
+          onClick={() => (window.location.href = "/")}
+          className="w-full text-sm text-gray-500 hover:text-[#3E7996] mt-4"
+        >
+          Voltar ao login das empresas
+        </button>
       </form>
-      {aviso && (
-        <ModalAviso
-          {...aviso}
-          onClose={() => setAviso(null)}
-        />
-      )}
+
+      {aviso && <ModalAviso {...aviso} onClose={() => setAviso(null)} />}
     </div>
   )
 }

@@ -11,6 +11,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:generate": "prisma generate",
     "prisma:deploy": "prisma migrate deploy",
+    "plataforma:create-admin": "node scripts/criar-plataforma-usuario.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

@@ -96,6 +96,50 @@ const obterPermissoesPorRole = (role) => {
   return role === "admin" ? permissoesAdmin : permissoesPadraoFuncionario
 }
 
+const validarLimiteFuncionarios = async ({ empresaId, ativandoUsuarioId = null }) => {
+  const empresa = await prisma.empresa.findUnique({
+    where: { id: empresaId },
+    select: {
+      limiteFuncionarios: true,
+      statusAssinatura: true
+    }
+  })
+
+  if (!empresa) {
+    return { valido: false, error: "Empresa não encontrada" }
+  }
+
+  if (empresa.statusAssinatura !== "ativa") {
+    return {
+      valido: false,
+      error: "A assinatura desta empresa não está ativa. Entre em contato com a AllaSoftware."
+    }
+  }
+
+  const usuariosAtivos = await prisma.usuario.count({
+    where: {
+      empresaId,
+      status: "ativo",
+      ...(ativandoUsuarioId
+        ? {
+            id: {
+              not: Number(ativandoUsuarioId)
+            }
+          }
+        : {})
+    }
+  })
+
+  if (usuariosAtivos >= empresa.limiteFuncionarios) {
+    return {
+      valido: false,
+      error: `Seu plano permite até ${empresa.limiteFuncionarios} usuário(s) ativo(s). Entre em contato com a AllaSoftware para ampliar o limite.`
+    }
+  }
+
+  return { valido: true }
+}
+
 // ─── Criar usuário ───────────────────────────────────────────
 export const criarUsuario = async (req, res) => {
   try {
@@ -122,6 +166,14 @@ export const criarUsuario = async (req, res) => {
     const hash = await bcrypt.hash(senha, 10)
 
     const roleFinal = role || "funcionario"
+    const statusFinal = status || "ativo"
+
+    if (statusFinal === "ativo") {
+      const limite = await validarLimiteFuncionarios({ empresaId: req.empresaId })
+      if (!limite.valido) {
+        return res.status(403).json({ error: limite.error })
+      }
+    }
 
     const usuario = await prisma.usuario.create({
       data: {
@@ -130,7 +182,7 @@ export const criarUsuario = async (req, res) => {
         senha: hash,
         role: roleFinal,
         cargo: cargo || null,
-        status: status || "ativo",
+        status: statusFinal,
         permissoes: permissoes || obterPermissoesPorRole(roleFinal),
         tipoEquipe: tipoEquipe || "profissional",
         profissional: profissional !== undefined ? Boolean(profissional) : true,
@@ -299,6 +351,17 @@ export const atualizarUsuario = async (req, res) => {
       return res.status(400).json({
         error: "Você não pode desativar o próprio usuário logado"
       })
+    }
+
+    if (status === "ativo" && usuarioExistente.status !== "ativo") {
+      const limite = await validarLimiteFuncionarios({
+        empresaId: req.empresaId,
+        ativandoUsuarioId: Number(id)
+      })
+
+      if (!limite.valido) {
+        return res.status(403).json({ error: limite.error })
+      }
     }
 
     const dados = {}

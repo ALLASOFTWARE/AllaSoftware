@@ -6,6 +6,12 @@ import { registrarAuditoria, ACOES_AUDITORIA, ENTIDADES_AUDITORIA } from "../ser
 
 export const register = async (req, res) => {
   try {
+    if (process.env.ALLOW_PUBLIC_COMPANY_REGISTER !== "true") {
+      return res.status(403).json({
+        error: "Cadastro público de empresas desativado. Entre em contato com a AllaSoftware."
+      })
+    }
+
     const { nomeEmpresa, nomeUsuario, email, senha } = req.body || {}
 
     if (!nomeEmpresa || !nomeUsuario || !email || !senha) {
@@ -71,6 +77,19 @@ export const register = async (req, res) => {
       `Empresa ${nomeEmpresa} registrada`,
       { empresaNome: nomeEmpresa, email }
     )
+
+    const empresaVerificacaoRemovida = await prisma.empresa.findUnique({
+      where: { id: empresa.id },
+      select: {
+        statusAssinatura: true
+      }
+    })
+
+    if (!empresaVerificacaoRemovida || !["ativa", "teste"].includes(empresaVerificacaoRemovida.statusAssinatura)) {
+      return res.status(403).json({
+        error: "A assinatura desta empresa não está ativa. Entre em contato com a AllaSoftware."
+      })
+    }
 
     // Gerar tokens
     const accessToken = gerarAccessToken(empresa.id, usuarioAdmin.id, usuarioAdmin.role)
@@ -185,6 +204,19 @@ export const loginUsuario = async (req, res) => {
     }
 
     // Gerar tokens
+    const empresaUsuario = await prisma.empresa.findUnique({
+      where: { id: usuario.empresaId },
+      select: {
+        statusAssinatura: true
+      }
+    })
+
+    if (!empresaUsuario || !["ativa", "teste"].includes(empresaUsuario.statusAssinatura)) {
+      return res.status(403).json({
+        error: "A assinatura desta empresa não está ativa. Entre em contato com a AllaSoftware."
+      })
+    }
+
     const accessToken = gerarAccessToken(usuario.empresaId, usuario.id, usuario.role)
     const refreshToken = gerarRefreshToken(usuario.empresaId, usuario.id)
 
