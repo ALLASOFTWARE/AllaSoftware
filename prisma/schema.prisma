@@ -289,6 +289,8 @@ model EmpresaWhatsApp {
   accessTokenEncrypted String
   templateConfirmacao  String   @default("agendamento_confirmado")
   templateLembrete24h  String   @default("lembrete_agendamento_24h")
+  limiteMensagensGratis Int     @default(350)
+  permitirExcedente     Boolean @default(false)
   idioma               String   @default("pt_BR")
   status               String   @default("manual")
   ultimoErro           String?

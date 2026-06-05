@@ -2,16 +2,20 @@ import prisma from "../config/prisma.js"
 import { encryptText } from "../utils/crypto.js"
 import {
   enviarTemplateWhatsApp,
-  normalizarTelefoneWhatsApp
+  normalizarTelefoneWhatsApp,
+  obterUsoMensalWhatsApp,
+  verificarLimiteEnvioWhatsApp,
+  LIMITE_MENSAGENS_WHATSAPP_GRATIS
 } from "../services/whatsappService.js"
 
-const esconderToken = (config) => {
+const esconderToken = (config, usoMensal = null) => {
   if (!config) return null
 
   return {
     ...config,
     accessTokenEncrypted: undefined,
-    tokenConfigurado: Boolean(config.accessTokenEncrypted)
+    tokenConfigurado: Boolean(config.accessTokenEncrypted),
+    usoMensal
   }
 }
 
@@ -23,7 +27,20 @@ export const obterConfiguracaoWhatsApp = async (req, res) => {
       }
     })
 
-    res.json(esconderToken(config))
+    const usoMensal = config
+      ? await obterUsoMensalWhatsApp(req.empresaId, config)
+      : {
+          limite: LIMITE_MENSAGENS_WHATSAPP_GRATIS,
+          usadas: 0,
+          restantes: LIMITE_MENSAGENS_WHATSAPP_GRATIS,
+          excedentes: 0,
+          percentual: 0,
+          permitirExcedente: false,
+          limiteAtingido: false,
+          bloqueado: false
+        }
+
+    res.json(esconderToken(config, usoMensal))
   } catch (error) {
     console.error("Erro ao buscar configuracao WhatsApp:", error)
     res.status(500).json({
@@ -44,6 +61,7 @@ export const salvarConfiguracaoWhatsApp = async (req, res) => {
       accessToken,
       templateConfirmacao,
       templateLembrete24h,
+      permitirExcedente = false,
       idioma = "pt_BR"
     } = req.body || {}
 
@@ -74,6 +92,8 @@ export const salvarConfiguracaoWhatsApp = async (req, res) => {
       phoneNumberId,
       templateConfirmacao: templateConfirmacao || "agendamento_confirmado",
       templateLembrete24h: templateLembrete24h || "lembrete_agendamento_24h",
+      limiteMensagensGratis: LIMITE_MENSAGENS_WHATSAPP_GRATIS,
+      permitirExcedente: Boolean(permitirExcedente),
       idioma: idioma || "pt_BR",
       status: "manual"
     }
@@ -93,7 +113,9 @@ export const salvarConfiguracaoWhatsApp = async (req, res) => {
       update: dados
     })
 
-    res.json(esconderToken(config))
+    const usoMensal = await obterUsoMensalWhatsApp(req.empresaId, config)
+
+    res.json(esconderToken(config, usoMensal))
   } catch (error) {
     console.error("Erro ao salvar configuracao WhatsApp:", error)
     res.status(500).json({
@@ -126,6 +148,32 @@ export const testarConfiguracaoWhatsApp = async (req, res) => {
       })
     }
 
+    try {
+      await verificarLimiteEnvioWhatsApp(req.empresaId, config)
+    } catch (error) {
+      if (error.code === "WHATSAPP_LIMIT_EXCEEDED") {
+        return res.status(402).json({
+          error: error.message,
+          usoMensal: error.uso
+        })
+      }
+
+      throw error
+    }
+
+    const mensagem = await prisma.mensagemWhatsApp.create({
+      data: {
+        empresaId: req.empresaId,
+        tipo: "teste",
+        destino,
+        templateName: config.templateConfirmacao,
+        status: "pendente",
+        payload: {
+          parameters: ["Teste", "Agendamento", "Profissional", "27/05/2026", "14:00"]
+        }
+      }
+    })
+
     const resposta = await enviarTemplateWhatsApp({
       config,
       destino,
@@ -134,9 +182,21 @@ export const testarConfiguracaoWhatsApp = async (req, res) => {
       parameters: ["Teste", "Agendamento", "Profissional", "27/05/2026", "14:00"]
     })
 
+    const providerMessageId = resposta?.messages?.[0]?.id || null
+
+    await prisma.mensagemWhatsApp.update({
+      where: { id: mensagem.id },
+      data: {
+        status: "enviado",
+        providerMessageId,
+        enviadoEm: new Date(),
+        erro: null
+      }
+    })
+
     res.json({
       message: "Mensagem de teste enviada",
-      providerMessageId: resposta?.messages?.[0]?.id || null
+      providerMessageId
     })
   } catch (error) {
     console.error("Erro ao testar WhatsApp:", error)

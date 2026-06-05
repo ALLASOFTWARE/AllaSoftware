@@ -14,12 +14,25 @@ const vazio = {
   accessToken: "",
   templateConfirmacao: "agendamento_confirmado",
   templateLembrete24h: "lembrete_agendamento_24h",
-  idioma: "pt_BR"
+  idioma: "pt_BR",
+  permitirExcedente: false
+}
+
+const usoVazio = {
+  limite: 350,
+  usadas: 0,
+  restantes: 350,
+  excedentes: 0,
+  percentual: 0,
+  permitirExcedente: false,
+  limiteAtingido: false,
+  bloqueado: false
 }
 
 export default function WhatsAppConfig() {
   const [form, setForm] = useState(vazio)
   const [mensagens, setMensagens] = useState([])
+  const [usoMensal, setUsoMensal] = useState(usoVazio)
   const [telefoneTeste, setTelefoneTeste] = useState("")
   const [loading, setLoading] = useState(true)
   const [salvando, setSalvando] = useState(false)
@@ -39,13 +52,15 @@ export default function WhatsAppConfig() {
       ])
 
       if (configRes.data) {
+        const { usoMensal: uso, ...config } = configRes.data
         setForm({
           ...vazio,
-          ...configRes.data,
+          ...config,
           accessToken: ""
         })
         setTokenConfigurado(Boolean(configRes.data.tokenConfigurado))
         setTelefoneTeste(configRes.data.numero || "")
+        setUsoMensal(uso || usoVazio)
       }
 
       setMensagens(mensagensRes.data || [])
@@ -69,9 +84,14 @@ export default function WhatsAppConfig() {
       setSalvando(true)
       const payload = { ...form }
       if (!payload.accessToken) delete payload.accessToken
+      delete payload.usoMensal
+      delete payload.tokenConfigurado
+      delete payload.accessTokenEncrypted
 
       const res = await api.put("/whatsapp/config", payload)
-      setForm({ ...vazio, ...res.data, accessToken: "" })
+      const { usoMensal: uso, ...config } = res.data
+      setForm({ ...vazio, ...config, accessToken: "" })
+      setUsoMensal(uso || usoVazio)
       setTokenConfigurado(Boolean(res.data.tokenConfigurado))
       setAviso({ titulo: "Sucesso", mensagem: "Configuracao salva com sucesso." })
     } catch (error) {
@@ -92,6 +112,9 @@ export default function WhatsAppConfig() {
       carregar()
     } catch (error) {
       console.error("Erro ao testar WhatsApp:", error)
+      if (error.response?.data?.usoMensal) {
+        setUsoMensal(error.response.data.usoMensal)
+      }
       setAviso({ titulo: "Erro", mensagem: error.response?.data?.detalhes || error.response?.data?.error || "Erro no teste." })
     } finally {
       setTestando(false)
@@ -116,6 +139,70 @@ export default function WhatsAppConfig() {
           </div>
         ) : (
           <form onSubmit={salvar} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-5">
+            <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <h2 className="text-base font-semibold text-[#2D2E47]">
+                    Mensagens do mês
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {usoMensal.usadas} de {usoMensal.limite} mensagens inclusas no pacote.
+                  </p>
+                </div>
+
+                <div className="rounded-lg bg-white px-3 py-2 text-sm shadow-sm border border-gray-100">
+                  <span className="font-semibold text-[#2D2E47]">
+                    {usoMensal.restantes > 0 ? usoMensal.restantes : 0}
+                  </span>{" "}
+                  <span className="text-gray-500">restantes</span>
+                </div>
+              </div>
+
+              <div className="mt-4 h-3 overflow-hidden rounded-full bg-white border border-gray-100">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    usoMensal.bloqueado
+                      ? "bg-red-500"
+                      : usoMensal.limiteAtingido
+                        ? "bg-amber-500"
+                        : "bg-[#2F8AA3]"
+                  }`}
+                  style={{ width: `${Math.min(usoMensal.percentual || 0, 100)}%` }}
+                />
+              </div>
+
+              {(usoMensal.limiteAtingido || usoMensal.bloqueado) && (
+                <div
+                  className={`mt-4 rounded-lg border p-3 text-sm ${
+                    usoMensal.bloqueado
+                      ? "border-red-100 bg-red-50 text-red-700"
+                      : "border-amber-100 bg-amber-50 text-amber-700"
+                  }`}
+                >
+                  {usoMensal.bloqueado
+                    ? "O limite gratuito foi atingido. Novas mensagens automaticas nao serao enviadas enquanto o excedente nao estiver autorizado."
+                    : `O limite gratuito foi atingido. As proximas mensagens entram como excedente (${usoMensal.excedentes} ja excedente(s) neste mes).`}
+                </div>
+              )}
+
+              <label className="mt-4 flex items-start gap-3 rounded-lg bg-white p-3 text-sm text-gray-700 border border-gray-100">
+                <input
+                  type="checkbox"
+                  checked={form.permitirExcedente}
+                  onChange={(e) => alterar("permitirExcedente", e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#2F8AA3]"
+                />
+                <span>
+                  <span className="block font-semibold text-[#2D2E47]">
+                    Continuar enviando apos 350 mensagens no mes
+                  </span>
+                  <span className="text-gray-500">
+                    Quando ativado, as mensagens acima do pacote serao enviadas e cobradas como excedente. Quando desativado, o sistema para de enviar ao atingir o limite.
+                  </span>
+                </span>
+              </label>
+            </div>
+
             <label className="flex items-center gap-2 text-sm text-gray-700">
               <input
                 type="checkbox"

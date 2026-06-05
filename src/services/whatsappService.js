@@ -2,6 +2,14 @@ import prisma from "../config/prisma.js"
 import { decryptText } from "../utils/crypto.js"
 
 const GRAPH_VERSION = process.env.WHATSAPP_API_VERSION || "v20.0"
+export const LIMITE_MENSAGENS_WHATSAPP_GRATIS = 350
+
+const obterPeriodoMensalAtual = (referencia = new Date()) => {
+  const inicio = new Date(referencia.getFullYear(), referencia.getMonth(), 1)
+  const fim = new Date(referencia.getFullYear(), referencia.getMonth() + 1, 1)
+
+  return { inicio, fim }
+}
 
 export const normalizarTelefoneWhatsApp = (telefone) => {
   const digitos = String(telefone || "").replace(/\D/g, "")
@@ -37,6 +45,53 @@ export const montarParametrosAgendamento = (agendamento) => [
   formatarDataBR(agendamento.dataHora),
   formatarHoraBR(agendamento.dataHora)
 ]
+
+export const obterUsoMensalWhatsApp = async (empresaId, config = null) => {
+  const { inicio, fim } = obterPeriodoMensalAtual()
+  const limite = Number(config?.limiteMensagensGratis || LIMITE_MENSAGENS_WHATSAPP_GRATIS)
+  const usadas = await prisma.mensagemWhatsApp.count({
+    where: {
+      empresaId,
+      status: "enviado",
+      enviadoEm: {
+        gte: inicio,
+        lt: fim
+      }
+    }
+  })
+  const restantes = Math.max(limite - usadas, 0)
+  const excedentes = Math.max(usadas - limite, 0)
+  const percentual = limite > 0 ? Math.min(Math.round((usadas / limite) * 100), 100) : 100
+  const permitirExcedente = Boolean(config?.permitirExcedente)
+
+  return {
+    limite,
+    usadas,
+    restantes,
+    excedentes,
+    percentual,
+    permitirExcedente,
+    limiteAtingido: usadas >= limite,
+    bloqueado: usadas >= limite && !permitirExcedente,
+    periodoInicio: inicio,
+    periodoFim: fim
+  }
+}
+
+export const verificarLimiteEnvioWhatsApp = async (empresaId, config = null) => {
+  const uso = await obterUsoMensalWhatsApp(empresaId, config)
+
+  if (uso.bloqueado) {
+    const erro = new Error(
+      "Limite mensal de mensagens gratuitas atingido. Ative o envio com excedente para continuar."
+    )
+    erro.code = "WHATSAPP_LIMIT_EXCEEDED"
+    erro.uso = uso
+    throw erro
+  }
+
+  return uso
+}
 
 export const enviarTemplateWhatsApp = async ({
   config,
@@ -117,12 +172,37 @@ export const enviarMensagemAgendamento = async ({
       agendamentoId: agendamento.id,
       tipo,
       status: {
-        in: ["pendente", "enviado"]
+        in: ["pendente", "enviado", "bloqueado_limite"]
       }
     }
   })
 
   if (existente) return existente
+
+  try {
+    await verificarLimiteEnvioWhatsApp(empresaId, config)
+  } catch (error) {
+    if (error.code !== "WHATSAPP_LIMIT_EXCEEDED") {
+      throw error
+    }
+
+    return await prisma.mensagemWhatsApp.create({
+      data: {
+        empresaId,
+        agendamentoId: agendamento.id,
+        clienteId: agendamento.clienteId,
+        tipo,
+        destino,
+        templateName,
+        status: "bloqueado_limite",
+        erro: error.message,
+        payload: {
+          limiteMensal: error.uso?.limite,
+          mensagensUsadas: error.uso?.usadas
+        }
+      }
+    })
+  }
 
   const mensagem = await prisma.mensagemWhatsApp.create({
     data: {
