@@ -98,19 +98,19 @@ export default function ResumoCard({ titulo, valor, subtitulo, corIcone, icon })
   const Icon = ICONS[iconName] || ChartColumn
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200/80 p-4 min-h-24 flex items-start justify-between gap-4">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200/80 p-3 min-h-20 flex items-start justify-between gap-3 sm:min-h-24 sm:p-4 sm:gap-4">
       <div className="min-w-0">
         <p className="text-xs font-medium text-[#4F5D75] leading-tight">{titulo}</p>
-        <p className="text-2xl font-bold text-[#0B1437] mt-1 leading-tight">{valor}</p>
+        <p className="text-xl font-bold text-[#0B1437] mt-1 leading-tight break-words sm:text-2xl">{valor}</p>
         {subtitulo && (
           <p className="text-xs font-medium text-[#00AFA8] mt-2">{subtitulo}</p>
         )}
       </div>
 
       <div
-        className={`h-10 w-10 shrink-0 rounded-full flex items-center justify-center ${iconTone}`}
+        className={`h-9 w-9 shrink-0 rounded-full flex items-center justify-center sm:h-10 sm:w-10 ${iconTone}`}
       >
-        <Icon className="h-5 w-5" />
+        <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
       </div>
     </div>
   )

@@ -75,7 +75,7 @@ export default function Dashboard() {
       <AppLayout>
         <div className="animate-pulse space-y-4">
           <div className="h-6 w-64 bg-gray-200 rounded" />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="h-20 bg-gray-100 rounded-xl" />
             ))}
@@ -114,7 +114,7 @@ export default function Dashboard() {
 
       {/* KPIs compactos — operação */}
       <SectionTitle>Operação</SectionTitle>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <KpiMini
           label="Clientes"
           value={dados?.totalClientes || 0}
@@ -168,9 +168,10 @@ export default function Dashboard() {
           </h2>
           <span className="text-[11px] text-gray-400">Atualizado agora</span>
         </div>
-        <div className="px-2 pb-3 pt-2">
-          <ResponsiveContainer width="100%" height={240}>
-            <AreaChart data={serie}>
+        <div className="overflow-x-auto px-2 pb-3 pt-2">
+          <div className="h-[220px] min-w-[520px] sm:h-[240px] sm:min-w-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={serie} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="gradVendas" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#2F8AA3" stopOpacity={0.35} />
@@ -197,6 +198,7 @@ export default function Dashboard() {
               />
             </AreaChart>
           </ResponsiveContainer>
+          </div>
         </div>
       </div>
     </AppLayout>
@@ -226,19 +228,19 @@ function KpiMini({ label, value, hint, accent = "indigo", Icon = ReceiptText }) 
   const accentClass = ACCENTS[accent] || ACCENTS.indigo
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4 min-h-24 flex items-start justify-between gap-4">
+    <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-3 min-h-20 flex items-start justify-between gap-3 sm:min-h-24 sm:p-4 sm:gap-4">
       <div className="min-w-0">
         <span className="text-xs font-medium text-[#4F5D75] leading-tight">
           {label}
         </span>
-        <span className="block text-2xl font-bold text-[#0B1437] mt-1 leading-tight">
+        <span className="block text-xl font-bold text-[#0B1437] mt-1 leading-tight break-words sm:text-2xl">
           {value}
         </span>
         {hint && <span className="block text-xs font-medium text-[#00AFA8] mt-2">{hint}</span>}
       </div>
 
-      <div className={`h-10 w-10 shrink-0 rounded-full border flex items-center justify-center ${accentClass}`}>
-        {createElement(Icon, { className: "h-5 w-5" })}
+      <div className={`h-9 w-9 shrink-0 rounded-full border flex items-center justify-center sm:h-10 sm:w-10 ${accentClass}`}>
+        {createElement(Icon, { className: "h-4 w-4 sm:h-5 sm:w-5" })}
       </div>
     </div>
   )
@@ -253,13 +255,13 @@ function KpiInline({ label, value, tone = "neutral", Icon = DollarSign }) {
       : "bg-cyan-50 text-[#0891B2] border-cyan-100"
 
   return (
-    <div className="bg-white border border-gray-200/80 rounded-xl shadow-sm p-4 flex items-center justify-between gap-4">
+    <div className="bg-white border border-gray-200/80 rounded-xl shadow-sm p-3 flex items-center justify-between gap-3 sm:p-4 sm:gap-4">
       <div>
         <span className="text-xs font-medium text-[#4F5D75]">{label}</span>
-        <span className={`block text-lg font-bold mt-1 ${toneClass}`}>{value}</span>
+        <span className={`block text-base font-bold mt-1 break-words sm:text-lg ${toneClass}`}>{value}</span>
       </div>
-      <div className={`h-10 w-10 shrink-0 rounded-full border flex items-center justify-center ${iconClass}`}>
-        {createElement(Icon, { className: "h-5 w-5" })}
+      <div className={`h-9 w-9 shrink-0 rounded-full border flex items-center justify-center sm:h-10 sm:w-10 ${iconClass}`}>
+        {createElement(Icon, { className: "h-4 w-4 sm:h-5 sm:w-5" })}
       </div>
     </div>
   )

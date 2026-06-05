@@ -1,11 +1,11 @@
 export default function Modal({ titulo, children, onClose, largura = "max-w-2xl" }) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/35 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/35 flex items-end justify-center p-0 sm:items-center sm:p-4">
       <div
-        className={`w-full ${largura} bg-white rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto`}
+        className={`w-full ${largura} bg-white rounded-t-2xl shadow-xl max-h-[92dvh] overflow-y-auto sm:rounded-2xl sm:max-h-[90vh]`}
       >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-          <h2 className="text-2xl font-bold text-[#2D2E47]">{titulo}</h2>
+        <div className="flex items-center justify-between gap-4 px-4 py-4 border-b border-gray-100 sm:px-6 sm:py-5">
+          <h2 className="text-xl font-bold text-[#2D2E47] sm:text-2xl">{titulo}</h2>
 
           <button
             type="button"
@@ -16,7 +16,7 @@ export default function Modal({ titulo, children, onClose, largura = "max-w-2xl"
           </button>
         </div>
 
-        <div className="p-6">{children}</div>
+        <div className="p-4 sm:p-6">{children}</div>
       </div>
     </div>
   )

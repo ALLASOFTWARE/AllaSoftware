@@ -118,7 +118,7 @@ export default function DashboardFinanceiro() {
       <AppLayout>
         <div className="animate-pulse space-y-4">
           <div className="h-6 w-72 bg-gray-200 rounded" />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="h-20 bg-gray-100 rounded-xl" />
             ))}
@@ -222,8 +222,10 @@ export default function DashboardFinanceiro() {
       {/* Gráficos */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mt-6">
         <Card className="xl:col-span-2" titulo="Entradas x Saídas — 7 dias">
-          <ResponsiveContainer width="100%" height={240}>
-            <AreaChart data={grafico7Dias}>
+          <div className="overflow-x-auto">
+            <div className="h-[220px] min-w-[560px] sm:h-[240px] sm:min-w-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={grafico7Dias} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="gradIn" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#00BAB4" stopOpacity={0.35} />
@@ -263,6 +265,8 @@ export default function DashboardFinanceiro() {
               />
             </AreaChart>
           </ResponsiveContainer>
+            </div>
+          </div>
         </Card>
 
         <Card titulo="Formas de pagamento">
@@ -271,8 +275,10 @@ export default function DashboardFinanceiro() {
               Nenhum dado no mês.
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={formasPagamento}>
+            <div className="overflow-x-auto">
+              <div className="h-[220px] min-w-[460px] sm:h-[240px] sm:min-w-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={formasPagamento} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#eef2f6" />
                 <XAxis dataKey="nome" tick={{ fontSize: 11, fill: "#6b7280" }} />
                 <YAxis tick={{ fontSize: 11, fill: "#6b7280" }} width={56} />
@@ -292,6 +298,8 @@ export default function DashboardFinanceiro() {
                 />
               </BarChart>
             </ResponsiveContainer>
+              </div>
+            </div>
           )}
         </Card>
       </div>
@@ -399,7 +407,7 @@ const TONES = {
 function Kpi({ label, value, hint, tone = "primary", Icon = TriangleAlert }) {
   const t = TONES[tone] || TONES.primary
   return (
-    <div className="bg-white border border-gray-200/80 rounded-xl shadow-sm p-4 min-h-24 flex items-start justify-between gap-3 sm:gap-4">
+    <div className="bg-white border border-gray-200/80 rounded-xl shadow-sm p-3 min-h-20 flex items-start justify-between gap-3 sm:min-h-24 sm:p-4 sm:gap-4">
       <div className="min-w-0">
         <span className="text-xs font-medium text-[#4F5D75] leading-tight">
           {label}
@@ -410,8 +418,8 @@ function Kpi({ label, value, hint, tone = "primary", Icon = TriangleAlert }) {
         {hint && <p className="text-xs font-medium text-[#00AFA8] mt-2">{hint}</p>}
       </div>
 
-      <div className={`h-10 w-10 shrink-0 rounded-full border flex items-center justify-center ${t.icon}`}>
-        {createElement(Icon, { className: "h-5 w-5" })}
+      <div className={`h-9 w-9 shrink-0 rounded-full border flex items-center justify-center sm:h-10 sm:w-10 ${t.icon}`}>
+        {createElement(Icon, { className: "h-4 w-4 sm:h-5 sm:w-5" })}
       </div>
     </div>
   )

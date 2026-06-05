@@ -157,7 +157,7 @@ export default function AppLayout({ children }) {
         }`}
       >
         {/* Topbar */}
-        <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between gap-3 px-4 sm:px-6 sticky top-0 z-30">
+        <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between gap-2 px-3 sm:gap-3 sm:px-6 sticky top-0 z-30">
           <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
@@ -169,7 +169,7 @@ export default function AppLayout({ children }) {
               <Menu className="h-5 w-5" />
             </button>
 
-            <BrandLogo tone="dark" className="h-9 w-32 object-left sm:w-40" />
+            <BrandLogo tone="dark" className="h-8 w-28 object-left sm:h-9 sm:w-40" />
           </div>
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
@@ -313,7 +313,7 @@ export default function AppLayout({ children }) {
           </div>
         </header>
 
-        <main className="p-4 sm:p-6">
+        <main className="p-3 sm:p-6">
           {children}
         </main>
       </div>

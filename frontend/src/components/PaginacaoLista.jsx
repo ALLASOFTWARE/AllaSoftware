@@ -34,12 +34,12 @@ export default function PaginacaoLista({
         </select>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:flex">
         <button
           type="button"
           onClick={() => irPara(pagina - 1)}
           disabled={pagina <= 1}
-          className="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:text-gray-300 disabled:cursor-not-allowed disabled:hover:bg-white"
+          className="px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:text-gray-300 disabled:cursor-not-allowed disabled:hover:bg-white sm:px-4"
         >
           Anterior
         </button>
@@ -52,7 +52,7 @@ export default function PaginacaoLista({
           type="button"
           onClick={() => irPara(pagina + 1)}
           disabled={pagina >= totalPaginas}
-          className="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:text-gray-300 disabled:cursor-not-allowed disabled:hover:bg-white"
+          className="px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:text-gray-300 disabled:cursor-not-allowed disabled:hover:bg-white sm:px-4"
         >
           Próxima
         </button>

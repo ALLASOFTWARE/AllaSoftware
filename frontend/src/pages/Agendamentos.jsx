@@ -423,11 +423,11 @@ export default function Agendamentos() {
   return (
     <AppLayout>
       {/* Container fixo na viewport — sem scroll na página */}
-      <div className="h-[calc(100vh-2rem)] flex flex-col gap-3 overflow-hidden">
+      <div className="flex min-h-[calc(100dvh-5.5rem)] flex-col gap-3 overflow-visible md:h-[calc(100vh-2rem)] md:overflow-hidden">
 
         {/* ===== Linha 1: Header + KPIs compactos + CTA ===== */}
-        <div className="flex items-center justify-between gap-4 flex-wrap shrink-0">
-          <div className="flex items-center gap-4">
+        <div className="flex items-start justify-between gap-3 flex-wrap shrink-0">
+          <div className="flex min-w-0 items-center gap-4">
             <div>
               <h1 className="text-xl font-bold text-[#2D2E47] leading-tight">Agendamentos</h1>
               <p className="text-xs text-gray-500">Clique num horário para criar.</p>
@@ -442,7 +442,7 @@ export default function Agendamentos() {
           <button
             type="button"
             onClick={() => abrirNovoAgendamento()}
-            className="bg-[#2F8AA3] text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition shadow-sm"
+            className="w-full bg-[#2F8AA3] text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition shadow-sm sm:w-auto sm:py-2"
           >
             + Novo Agendamento
           </button>
@@ -450,9 +450,9 @@ export default function Agendamentos() {
 
         {/* ===== Linha 2: Toolbar única (navegação + visão + filtros + legenda) ===== */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 px-3 py-2 shrink-0">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
             {/* Navegação */}
-            <div className="flex items-center gap-1.5">
+            <div className="grid grid-cols-[auto_auto_auto_1fr] items-center gap-1.5">
               <button
                 onClick={irParaHoje}
                 className="h-8 px-2.5 rounded-md border border-gray-200 text-xs text-gray-700 hover:bg-gray-50"
@@ -467,11 +467,11 @@ export default function Agendamentos() {
                 className="h-8 w-8 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50"
                 aria-label="Próximo"
               >›</button>
-              <h2 className="ml-1 text-sm font-semibold text-[#2D2E47] min-w-[150px]">{tituloPeriodo}</h2>
+              <h2 className="ml-1 min-w-0 truncate text-sm font-semibold text-[#2D2E47] sm:min-w-[150px]">{tituloPeriodo}</h2>
             </div>
 
             {/* Visões */}
-            <div className="flex h-8 items-center gap-0.5 bg-gray-100 rounded-lg p-0.5">
+            <div className="grid h-9 grid-cols-4 items-center gap-0.5 bg-gray-100 rounded-lg p-0.5 sm:inline-grid sm:w-auto">
               {[
                 { v: "mes", l: "Mês" },
                 { v: "semana", l: "Semana" },
@@ -481,7 +481,7 @@ export default function Agendamentos() {
                 <button
                   key={o.v}
                   onClick={() => setVisao(o.v)}
-                  className={`h-7 px-2.5 rounded-md text-xs font-medium transition ${
+                  className={`h-8 px-2 rounded-md text-xs font-medium transition sm:px-2.5 ${
                     visao === o.v ? "bg-white text-[#2F8AA3] shadow-sm" : "text-gray-600 hover:text-gray-800"
                   }`}
                 >{o.l}</button>
@@ -489,7 +489,7 @@ export default function Agendamentos() {
             </div>
 
             {/* Filtros status */}
-            <div className="flex h-8 items-center gap-1.5">
+            <div className="-mx-1 flex h-9 items-center gap-1.5 overflow-x-auto px-1 sm:mx-0 sm:px-0">
               {[
                 { label: "Todos", value: "" },
                 { label: "Agendados", value: "agendado" },
@@ -499,7 +499,7 @@ export default function Agendamentos() {
                 <button
                   key={f.value}
                   onClick={() => setStatusFiltro(f.value)}
-                  className={`h-8 px-2.5 rounded-full text-xs font-medium transition ${
+                  className={`h-8 shrink-0 px-2.5 rounded-full text-xs font-medium transition ${
                     statusFiltro === f.value
                       ? "bg-[#2F8AA3] text-white"
                       : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
@@ -509,11 +509,11 @@ export default function Agendamentos() {
             </div>
           </div>
 
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center">
             <select
               value={profissionalFiltro}
               onChange={(e) => setProfissionalFiltro(e.target.value)}
-              className="h-9 w-48 bg-white border border-gray-200 rounded-lg px-3 text-xs text-[#2D2E47] outline-none focus:ring-2 focus:ring-[#3E7996]"
+              className="h-10 w-full bg-white border border-gray-200 rounded-lg px-3 text-xs text-[#2D2E47] outline-none focus:ring-2 focus:ring-[#3E7996] lg:h-9 lg:w-48"
             >
               <option value="">Todos os profissionais</option>
 
@@ -524,7 +524,7 @@ export default function Agendamentos() {
               ))}
             </select>
 
-            <div className="w-48">
+            <div className="w-full lg:w-48">
               <ClienteSearchSelect
                 clientes={clientes}
                 clienteId={clienteFiltro}
@@ -539,7 +539,7 @@ export default function Agendamentos() {
                 buscaInicial={clienteFiltroNome}
                 placeholder="Buscar cliente"
                 permitirSemCliente={true}
-                inputClassName="h-9 w-full border border-gray-200 rounded-lg px-3 text-xs text-[#2D2E47] outline-none focus:ring-2 focus:ring-[#3E7996]"
+                inputClassName="h-10 w-full border border-gray-200 rounded-lg px-3 text-xs text-[#2D2E47] outline-none focus:ring-2 focus:ring-[#3E7996] lg:h-9"
                 onSelect={(cliente) => {
                   setClienteFiltro(String(cliente.id))
                   setClienteFiltroNome(cliente.nome)
@@ -548,12 +548,12 @@ export default function Agendamentos() {
               />
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 sm:col-span-2 lg:flex">
               <input
                 type="date"
                 value={dataInicio}
                 onChange={(e) => setDataInicio(e.target.value)}
-                className="h-9 w-36 bg-white border border-gray-200 rounded-lg px-3 text-xs text-[#2D2E47] outline-none focus:ring-2 focus:ring-[#3E7996]"
+                className="h-10 w-full bg-white border border-gray-200 rounded-lg px-3 text-xs text-[#2D2E47] outline-none focus:ring-2 focus:ring-[#3E7996] lg:h-9 lg:w-36"
               />
 
               <span className="text-xs text-gray-400">→</span>
@@ -562,14 +562,14 @@ export default function Agendamentos() {
                 type="date"
                 value={dataFim}
                 onChange={(e) => setDataFim(e.target.value)}
-                className="h-9 w-36 bg-white border border-gray-200 rounded-lg px-3 text-xs text-[#2D2E47] outline-none focus:ring-2 focus:ring-[#3E7996]"
+                className="h-10 w-full bg-white border border-gray-200 rounded-lg px-3 text-xs text-[#2D2E47] outline-none focus:ring-2 focus:ring-[#3E7996] lg:h-9 lg:w-36"
               />
             </div>
 
             <button
               type="button"
               onClick={limparFiltros}
-              className="h-9 px-3 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs"
+              className="h-10 w-full px-3 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs sm:col-span-2 lg:h-9 lg:w-auto"
             >Limpar</button>
 
             {/* Legenda inline */}
@@ -584,7 +584,7 @@ export default function Agendamentos() {
 
 
         {/* ===== Linha 3: Calendário ocupa todo o resto da viewport ===== */}
-        <div className="flex-1 min-h-0 overflow-hidden">
+        <div className="min-h-[520px] flex-1 overflow-hidden md:min-h-0">
           {loading ? (
             <div className="h-full bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center text-gray-500">
               Carregando agenda...
@@ -947,15 +947,15 @@ function VisaoMes({ dataReferencia, agendamentos, onClickEvento, onClickDia, onI
   const mesAtual = dataReferencia.getMonth()
 
   return (
-    <div className="h-full bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-      <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50 shrink-0">
+    <div className="h-full bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto overflow-y-hidden flex flex-col">
+      <div className="grid min-w-[640px] grid-cols-7 border-b border-gray-100 bg-gray-50 shrink-0">
         {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((d) => (
           <div key={d} className="px-3 py-1.5 text-[11px] font-semibold text-gray-500 text-center uppercase tracking-wide">
             {d}
           </div>
         ))}
       </div>
-      <div className="flex-1 grid grid-cols-7 grid-rows-6 min-h-0">
+      <div className="flex-1 grid min-w-[640px] grid-cols-7 grid-rows-6 min-h-0">
         {dias.map((dia, idx) => {
           const eventosDoDia = agendamentos
             .filter((a) => a.dataHora && mesmoDia(new Date(a.dataHora), dia))
@@ -1043,9 +1043,9 @@ function VisaoSemana({ dataReferencia, agendamentos, onClickEvento, onClickSlot 
   const hojeStr = new Date().toDateString()
 
   return (
-    <div className="h-full bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+    <div className="h-full bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto overflow-y-hidden flex flex-col">
       {/* Header dias */}
-      <div className="grid grid-cols-[50px_repeat(7,1fr)] border-b border-gray-100 bg-gray-50 shrink-0">
+      <div className="grid min-w-[760px] grid-cols-[50px_repeat(7,1fr)] border-b border-gray-100 bg-gray-50 shrink-0">
         <div></div>
         {dias.map((d) => {
           const ehHoje = d.toDateString() === hojeStr
@@ -1077,7 +1077,7 @@ function VisaoSemana({ dataReferencia, agendamentos, onClickEvento, onClickSlot 
 
       {/* Grid horas — único elemento com scroll */}
       <div className="flex-1 min-h-0 overflow-auto">
-        <div className="grid grid-cols-[50px_repeat(7,1fr)]">
+        <div className="grid min-w-[760px] grid-cols-[50px_repeat(7,1fr)]">
           {horas.map((h) => (
             <FragmentoHora
               key={h}
@@ -1112,7 +1112,7 @@ function FragmentoHora({ hora, dias, agendamentos, onClickEvento, onClickSlot })
           <div
             key={d.toISOString() + hora}
             onClick={() => onClickSlot(slot)}
-            className={`relative min-h-2 border-t border-l border-gray-100 cursor-pointer transition ${
+            className={`relative min-h-12 border-t border-l border-gray-100 cursor-pointer transition ${
               feriado ? "bg-amber-50/40 hover:bg-amber-50" : "hover:bg-[#F4FAFC]"
             }`}
           >
@@ -1123,7 +1123,7 @@ function FragmentoHora({ hora, dias, agendamentos, onClickEvento, onClickSlot })
                   <button
                     key={a.id}
                     onClick={(e) => { e.stopPropagation(); onClickEvento(a) }}
-                    className={`flex-1 min-h-2 m-[3px] text-left rounded-md px-1.5 py-1 text-[11px] ${cor.bgSoft} ${cor.text} border-l-[3px] ${cor.border} hover:brightness-95 overflow-hidden`}
+                    className={`flex-1 min-h-9 m-[3px] text-left rounded-md px-1.5 py-1 text-[11px] ${cor.bgSoft} ${cor.text} border-l-[3px] ${cor.border} hover:brightness-95 overflow-hidden`}
                   >
                     <div className="font-semibold truncate">{a.titulo}</div>
                     <div className="truncate opacity-75">{horaCurta(a.dataHora)} · {a.cliente?.nome || "—"}</div>
@@ -1148,16 +1148,16 @@ function VisaoDia({ dataReferencia, agendamentos, onClickEvento, onClickSlot }) 
 
   return (
     <div className="h-full bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-      <div className="px-5 py-2.5 border-b border-gray-100 flex items-center justify-between shrink-0">
-        <div className="flex items-baseline gap-3">
-          <h3 className="text-lg font-bold text-[#2D2E47]">
+      <div className="px-4 py-2.5 border-b border-gray-100 flex flex-col gap-2 shrink-0 sm:px-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h3 className="text-base font-bold text-[#2D2E47] sm:text-lg">
             {dataReferencia.toLocaleDateString("pt-BR", { day: "2-digit", month: "long" })}
           </h3>
           <p className="text-xs uppercase tracking-wide text-gray-400 font-medium">
             {dataReferencia.toLocaleDateString("pt-BR", { weekday: "long" })}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {feriado && (
             <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">
               {feriado.nome}
@@ -1168,7 +1168,7 @@ function VisaoDia({ dataReferencia, agendamentos, onClickEvento, onClickSlot }) 
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto">
-        <div className="grid grid-cols-[70px_1fr]">
+        <div className="grid grid-cols-[56px_1fr] sm:grid-cols-[70px_1fr]">
           {horas.map((h) => {
             const slot = new Date(dataReferencia); slot.setHours(h, 0, 0, 0)
             const eventos = eventosDoDia.filter((a) => new Date(a.dataHora).getHours() === h)
@@ -1196,7 +1196,7 @@ function FragmentoHoraDia({ hora, slot, eventos, onClickEvento, onClickSlot }) {
     <>
       <div 
         onClick={() => onClickSlot(slot)}
-        className={`border-t min-h-20 border-gray-100 text-xs text-gray-400 px-3 pt-1 text-right cursor-pointer ${
+        className={`border-t min-h-20 border-gray-100 text-xs text-gray-400 px-2 pt-1 text-right cursor-pointer sm:px-3 ${
           feriado ? "bg-amber-50/40 hover:bg-amber-50" : "hover:bg-[#F4FAFC]"
         }`}>
         
@@ -1204,7 +1204,7 @@ function FragmentoHoraDia({ hora, slot, eventos, onClickEvento, onClickSlot }) {
       </div>
       <div
         onClick={() => onClickSlot(slot)}
-        className={`relative min-h-20 border-t border-l border-gray-100 cursor-pointer transition px-2 py-1 ${
+        className={`relative min-h-20 border-t border-l border-gray-100 cursor-pointer transition px-1.5 py-1 sm:px-2 ${
           feriado ? "bg-amber-50/40 hover:bg-amber-50" : "hover:bg-[#F4FAFC]"
         }`}
       >
@@ -1215,7 +1215,7 @@ function FragmentoHoraDia({ hora, slot, eventos, onClickEvento, onClickSlot }) {
               <button
                 key={a.id}
                 onClick={(e) => { e.stopPropagation(); onClickEvento(a) }}
-                className={`text-left rounded-lg px-3 py-2 ${cor.bgSoft} ${cor.text} border-l-4 ${cor.border} hover:brightness-95 transition`}
+                className={`text-left rounded-lg px-2.5 py-2 ${cor.bgSoft} ${cor.text} border-l-4 ${cor.border} hover:brightness-95 transition sm:px-3`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
@@ -1264,8 +1264,8 @@ function VisaoLista({ agendamentos, onEditar, onAtualizarStatus, onExcluir }) {
         const data = dataStr === "sem-data" ? null : new Date(dataStr)
         const feriado = data ? obterFeriado(data) : null
         return (
-          <div key={dataStr} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="px-5 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-3">
+          <div key={dataStr} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sm:rounded-2xl">
+            <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-3 sm:px-5">
               <div className={`w-10 h-10 rounded-xl flex flex-col items-center justify-center ${
                 feriado ? "bg-amber-100 text-amber-700" : "bg-[#E6F2F6] text-[#2F8AA3]"
               }`}>
@@ -1294,7 +1294,7 @@ function VisaoLista({ agendamentos, onEditar, onAtualizarStatus, onExcluir }) {
               {lista.map((a) => {
                 const cor = STATUS_CORES[a.status] || STATUS_CORES.agendado
                 return (
-                  <div key={a.id} className="flex flex-col md:flex-row md:items-center gap-3 p-4 hover:bg-gray-50 transition">
+                  <div key={a.id} className="flex flex-col md:flex-row md:items-center gap-3 p-3 hover:bg-gray-50 transition sm:p-4">
                     <div className={`w-1 self-stretch rounded-full ${cor.bg} hidden md:block`}></div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -1310,26 +1310,26 @@ function VisaoLista({ agendamentos, onEditar, onAtualizarStatus, onExcluir }) {
                         {a.descricao ? ` · ${a.descricao}` : ""}
                       </p>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                       {a.status === "agendado" && (
                         <>
                           <button
                             onClick={() => onAtualizarStatus(a, "concluido")}
-                            className="text-xs px-3 py-1.5 rounded-lg border border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+                            className="text-xs px-3 py-2 rounded-lg border border-emerald-200 text-emerald-600 hover:bg-emerald-50"
                           >Concluir</button>
                           <button
                             onClick={() => onAtualizarStatus(a, "cancelado")}
-                            className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50"
+                            className="text-xs px-3 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50"
                           >Cancelar</button>
                         </>
                       )}
                       <button
                         onClick={() => onEditar(a)}
-                        className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100"
+                        className="text-xs px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100"
                       >Editar</button>
                       <button
                         onClick={() => onExcluir(a.id)}
-                        className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50"
+                        className="text-xs px-3 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50"
                       >Excluir</button>
                     </div>
                   </div>
@@ -1349,8 +1349,8 @@ function DetalhesAgendamento({ agendamento, onEditar, onAtualizarStatus, onExclu
   return (
     <div className="space-y-4">
       <div className={`rounded-xl p-4 ${cor.bgSoft} border-l-4 ${cor.border}`}>
-        <div className="flex items-center justify-between gap-3">
-          <h3 className={`text-lg font-bold ${cor.text}`}>{agendamento.titulo}</h3>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <h3 className={`text-base font-bold sm:text-lg ${cor.text}`}>{agendamento.titulo}</h3>
           <StatusBadge status={agendamento.status} />
         </div>
         <p className="text-sm text-gray-700 mt-1">
@@ -1379,7 +1379,7 @@ function DetalhesAgendamento({ agendamento, onEditar, onAtualizarStatus, onExclu
           <p className="text-sm text-gray-700 bg-gray-50 rounded-xl p-3">{agendamento.observacoes}</p>
         </div>
       )}
-      <div className="flex flex-wrap gap-2 justify-end pt-2 border-t border-gray-100">
+      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100 sm:flex sm:flex-wrap sm:justify-end">
         {agendamento.status === "agendado" && (
           <>
             <button
