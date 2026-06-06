@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import AppLayout from "../layouts/AppLayout"
 import api from "../services/api"
 import Modal from "../components/Modal"
@@ -13,12 +13,13 @@ import { podeAcessar } from "../utils/permissoes"
 
 export default function Clientes() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   const [clientes, setClientes] = useState([])
   const [loading, setLoading] = useState(true)
 
   const [busca, setBusca] = useState("")
-  const [status, setStatus] = useState("")
+  const [status, setStatus] = useState(searchParams.get("status") || "")
   const [ordem, setOrdem] = useState("asc")
   const [paginaAtual, setPaginaAtual] = useState(1)
   const [itensPorPagina, setItensPorPagina] = useState(10)
@@ -63,6 +64,10 @@ export default function Clientes() {
   useEffect(() => {
     setPaginaAtual(1)
   }, [busca, status, ordem])
+
+  useEffect(() => {
+    setStatus(searchParams.get("status") || "")
+  }, [searchParams])
 
   useEffect(() => {
     const timer = setTimeout(carregarClientes, 300)

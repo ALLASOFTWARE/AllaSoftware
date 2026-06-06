@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import AppLayout from "../layouts/AppLayout"
 import api from "../services/api"
 import ClienteSearchSelect from "../components/ClienteSearchSelect"
@@ -15,6 +15,7 @@ import { podeAcessar } from "../utils/permissoes"
 
 export default function ContasReceber() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const podeCriar = podeAcessar("contasReceber", "criar")
   const podeReceberPagamento = podeAcessar("contasReceber", "receberPagamento")
 
@@ -23,7 +24,7 @@ export default function ContasReceber() {
   const [loading, setLoading] = useState(true)
 
   const [aviso, setAviso] = useState(null)
-  const [status, setStatus] = useState("")
+  const [status, setStatus] = useState(searchParams.get("status") || "")
   const [clienteIdFiltro, setClienteIdFiltro] = useState("")
   const [paginaAtual, setPaginaAtual] = useState(1)
   const [itensPorPagina, setItensPorPagina] = useState(10)
@@ -56,6 +57,10 @@ export default function ContasReceber() {
   useEffect(() => {
     setPaginaAtual(1)
   }, [status, clienteIdFiltro])
+
+  useEffect(() => {
+    setStatus(searchParams.get("status") || "")
+  }, [searchParams])
 
   useEffect(() => {
     carregarDados()

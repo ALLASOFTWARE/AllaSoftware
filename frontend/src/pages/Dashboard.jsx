@@ -1,13 +1,19 @@
 import { createElement, useEffect, useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import {
+  AlertTriangle,
+  ArrowRight,
+  CalendarDays,
   ClockAlert,
-  ReceiptText,
   DollarSign,
+  MessageCircle,
+  Package,
+  ReceiptText,
   Users
 } from "lucide-react"
 import AppLayout from "../layouts/AppLayout"
 import api from "../services/api"
-import { formatarMoeda } from "../utils/formatters"
+import { formatarDataHora, formatarMoeda } from "../utils/formatters"
 import {
   ResponsiveContainer,
   AreaChart,
@@ -24,10 +30,20 @@ import {
  * cards densos e seções agrupadas por contexto.
  */
 export default function Dashboard() {
+  const navigate = useNavigate()
   const usuario = JSON.parse(localStorage.getItem("usuario") || "null")
   const [dados, setDados] = useState(null)
   const [comissao, setComissao] = useState(null)
   const [serie, setSerie] = useState([])
+  const [alertas, setAlertas] = useState({
+    resumo: {
+      total: 0,
+      criticos: 0,
+      atencao: 0,
+      informativos: 0
+    },
+    alertas: []
+  })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -38,10 +54,21 @@ export default function Dashboard() {
           api.get("/clientes?page=1&limit=1&status=pendente"),
           api.get("/dashboard/cobrancas"),
           api.get("/dashboard/vendas-serie").catch(() => ({ data: [] })),
+          api.get("/alertas/operacionais").catch(() => ({
+            data: {
+              resumo: {
+                total: 0,
+                criticos: 0,
+                atencao: 0,
+                informativos: 0
+              },
+              alertas: []
+            }
+          })),
         ]
         if (usuario?.id) reqs.push(api.get("/comissoes/me"))
 
-        const [clientesRes, clientesPendentesRes, cobrancasRes, serieRes, comissaoRes] =
+        const [clientesRes, clientesPendentesRes, cobrancasRes, serieRes, alertasRes, comissaoRes] =
           await Promise.all(reqs)
 
         const cobrancas = cobrancasRes.data || {}
@@ -55,6 +82,15 @@ export default function Dashboard() {
           totalVencido: cobrancas.totalVencido || 0,
         })
         setSerie(serieRes?.data || [])
+        setAlertas(alertasRes?.data || {
+          resumo: {
+            total: 0,
+            criticos: 0,
+            atencao: 0,
+            informativos: 0
+          },
+          alertas: []
+        })
         if (comissaoRes?.data) setComissao(comissaoRes.data)
       } catch (e) {
         console.error("Erro ao carregar dashboard principal:", e)
@@ -113,6 +149,43 @@ export default function Dashboard() {
       </div>
 
       {/* KPIs compactos — operação */}
+      <SectionTitle>Alertas operacionais</SectionTitle>
+      <div className="mb-6">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
+          <AlertaResumo
+            label="Criticos"
+            value={alertas?.resumo?.criticos || 0}
+            tone="danger"
+          />
+          <AlertaResumo
+            label="Atencao"
+            value={alertas?.resumo?.atencao || 0}
+            tone="warning"
+          />
+          <AlertaResumo
+            label="Informativos"
+            value={alertas?.resumo?.informativos || 0}
+            tone="info"
+          />
+        </div>
+
+        {(alertas?.alertas || []).length === 0 ? (
+          <div className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+            Operacao sem alertas relevantes agora.
+          </div>
+        ) : (
+          <div className="mt-3 grid grid-cols-1 xl:grid-cols-2 gap-3">
+            {alertas.alertas.map((alerta) => (
+              <AlertaOperacionalCard
+                key={alerta.id}
+                alerta={alerta}
+                onAbrir={() => alerta.href && navigate(alerta.href)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
       <SectionTitle>Operação</SectionTitle>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <KpiMini
@@ -206,6 +279,156 @@ export default function Dashboard() {
 }
 
 /* ---------- Subcomponentes ---------- */
+
+const ALERTA_TONES = {
+  critico: {
+    card: "border-red-100 bg-red-50/70",
+    badge: "bg-red-100 text-red-700",
+    icon: "bg-red-100 text-red-700 border-red-200"
+  },
+  atencao: {
+    card: "border-amber-100 bg-amber-50/70",
+    badge: "bg-amber-100 text-amber-700",
+    icon: "bg-amber-100 text-amber-700 border-amber-200"
+  },
+  info: {
+    card: "border-sky-100 bg-sky-50/70",
+    badge: "bg-sky-100 text-sky-700",
+    icon: "bg-sky-100 text-sky-700 border-sky-200"
+  }
+}
+
+const ALERTA_ICONS = {
+  contas_receber: ReceiptText,
+  contas_pagar: DollarSign,
+  agendamentos: CalendarDays,
+  estoque: Package,
+  clientes: Users,
+  whatsapp: MessageCircle,
+  whatsapp_erros: MessageCircle
+}
+
+function AlertaResumo({ label, value, tone = "info" }) {
+  const classes = {
+    danger: "border-red-100 bg-red-50 text-red-700",
+    warning: "border-amber-100 bg-amber-50 text-amber-700",
+    info: "border-sky-100 bg-sky-50 text-sky-700"
+  }
+
+  return (
+    <div className={`rounded-xl border px-4 py-3 ${classes[tone] || classes.info}`}>
+      <span className="block text-xs font-semibold uppercase tracking-wide">
+        {label}
+      </span>
+      <span className="mt-1 block text-2xl font-bold leading-none">{value}</span>
+    </div>
+  )
+}
+
+function AlertaOperacionalCard({ alerta, onAbrir }) {
+  const tone = ALERTA_TONES[alerta.prioridade] || ALERTA_TONES.info
+  const Icon = ALERTA_ICONS[alerta.tipo] || AlertTriangle
+  const itens = (alerta.itens || []).slice(0, 3)
+
+  return (
+    <div className={`rounded-xl border p-4 shadow-sm ${tone.card}`}>
+      <div className="flex items-start gap-3">
+        <div className={`h-10 w-10 shrink-0 rounded-full border flex items-center justify-center ${tone.icon}`}>
+          {createElement(Icon, { className: "h-5 w-5" })}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="min-w-0">
+              <h4 className="text-sm font-bold text-[#2D2E47] break-words">
+                {alerta.titulo}
+              </h4>
+              <p className="mt-0.5 text-xs text-gray-600">{alerta.descricao}</p>
+            </div>
+            <span className={`rounded-full px-2 py-1 text-xs font-bold ${tone.badge}`}>
+              {alerta.quantidade}
+            </span>
+          </div>
+
+          {alerta.valor !== null && alerta.valor !== undefined && (
+            <p className="mt-2 text-sm font-semibold text-[#2D2E47]">
+              {formatarMoeda(alerta.valor)}
+            </p>
+          )}
+
+          {alerta.metadata?.percentual !== undefined && (
+            <div className="mt-3">
+              <div className="h-2 overflow-hidden rounded-full bg-white/80">
+                <div
+                  className={`h-full rounded-full ${
+                    alerta.metadata.percentual >= 100
+                      ? "bg-red-500"
+                      : alerta.metadata.percentual >= 95
+                      ? "bg-amber-500"
+                      : "bg-sky-500"
+                  }`}
+                  style={{ width: `${Math.min(alerta.metadata.percentual, 100)}%` }}
+                />
+              </div>
+              <p className="mt-1 text-xs text-gray-600">
+                {alerta.metadata.usadas} de {alerta.metadata.limite} mensagens usadas ({alerta.metadata.percentual}%)
+              </p>
+            </div>
+          )}
+
+          {itens.length > 0 && (
+            <div className="mt-3 space-y-1.5">
+              {itens.map((item) => (
+                <p key={`${alerta.id}-${item.id}`} className="truncate text-xs text-gray-700">
+                  {formatarItemAlerta(alerta.tipo, item)}
+                </p>
+              ))}
+            </div>
+          )}
+
+          {alerta.href && (
+            <button
+              type="button"
+              onClick={onAbrir}
+              className="mt-3 inline-flex items-center gap-1 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-[#2F8AA3] shadow-sm hover:bg-gray-50"
+            >
+              Ver detalhes
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function formatarItemAlerta(tipo, item) {
+  if (tipo === "agendamentos") {
+    return `${formatarDataHora(item.dataHora)} - ${item.cliente} - ${item.servico}`
+  }
+
+  if (tipo === "estoque") {
+    return `${item.nome} - estoque: ${item.estoque}`
+  }
+
+  if (tipo === "clientes") {
+    return `${item.nome}${item.telefone ? ` - ${item.telefone}` : ""}`
+  }
+
+  if (tipo === "whatsapp_erros") {
+    return `${item.cliente} - ${item.status}`
+  }
+
+  if (tipo === "contas_receber") {
+    return `${item.cliente} - ${formatarMoeda(item.saldoRestante)}`
+  }
+
+  if (tipo === "contas_pagar") {
+    return `${item.descricao || "Conta"} - ${formatarMoeda(item.saldoRestante)}`
+  }
+
+  return item.nome || item.titulo || item.descricao || `Item #${item.id}`
+}
 
 function SectionTitle({ children, className = "" }) {
   return (

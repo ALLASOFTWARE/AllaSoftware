@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useSearchParams } from "react-router-dom"
 import AppLayout from "../layouts/AppLayout"
 import api from "../services/api"
 import { formatarMoeda } from "../utils/formatters"
@@ -43,6 +44,7 @@ const contaInicial = {
 }
 
 export default function ContasPagar() {
+  const [searchParams] = useSearchParams()
   const podeCriar = podeAcessar("contasPagar", "criar")
   const podeEditar = podeAcessar("contasPagar", "editar")
   const podePagar = podeAcessar("contasPagar", "pagar")
@@ -51,7 +53,7 @@ export default function ContasPagar() {
   const [contas, setContas] = useState([])
   const [loading, setLoading] = useState(true)
   const [aviso, setAviso] = useState(null)
-  const [status, setStatus] = useState("")
+  const [status, setStatus] = useState(searchParams.get("status") || "")
   const [categoria, setCategoria] = useState("")
   const [paginaAtual, setPaginaAtual] = useState(1)
   const [itensPorPagina, setItensPorPagina] = useState(10)
@@ -80,6 +82,10 @@ export default function ContasPagar() {
   useEffect(() => {
     setPaginaAtual(1)
   }, [status, categoria])
+
+  useEffect(() => {
+    setStatus(searchParams.get("status") || "")
+  }, [searchParams])
 
   useEffect(() => {
     carregarContas()
