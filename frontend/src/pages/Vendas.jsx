@@ -30,7 +30,7 @@ export default function Vendas() {
   const [descricaoConta, setDescricaoConta] = useState("")
 
   const [salvando, setSalvando] = useState(false)
-  const [, setCarrinhoAberto] = useState(false)
+  const [carrinhoAberto, setCarrinhoAberto] = useState(false)
   const [aviso, setAviso] = useState(null)
 
   useEffect(() => {
@@ -333,7 +333,7 @@ export default function Vendas() {
               </div>
 
               {/* LISTA COM SCROLL */}
-              <div className="flex-1 lg:min-h-0 lg:overflow-y-auto p-4 sm:p-5">
+              <div className="flex-1 lg:min-h-0 lg:overflow-y-auto p-4 pb-28 sm:p-5 lg:pb-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                   {listaFiltrada.map((item) => {
                     const preco = precoDe(item, aba)
@@ -354,12 +354,51 @@ export default function Vendas() {
             </section>
 
             {/* DIREITA (CARRINHO) */}
-            <aside className="flex flex-col bg-white rounded-2xl border border-gray-200 min-h-0 overflow-hidden">
+            <aside className="hidden lg:flex flex-col bg-white rounded-2xl border border-gray-200 min-h-0 overflow-hidden">
               <Carrinho {...carrinhoProps} />
             </aside>
           </div>
         </div>
       </div>
+
+      <BarraCarrinhoMobile
+        totalItens={totalItens}
+        totalFinal={totalFinal}
+        podePagar={podePagar}
+        salvando={salvando}
+        formatarMoeda={formatarMoeda}
+        onAbrir={() => setCarrinhoAberto(true)}
+      />
+
+      {carrinhoAberto && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/35"
+            aria-label="Fechar carrinho"
+            onClick={() => setCarrinhoAberto(false)}
+          />
+          <div className="absolute inset-x-0 bottom-0 max-h-[88dvh] overflow-hidden rounded-t-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+              <div>
+                <p className="text-sm font-bold text-[#2D2E47]">Carrinho da venda</p>
+                <p className="text-xs text-gray-500">{totalItens} item(ns) selecionado(s)</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCarrinhoAberto(false)}
+                className="h-9 w-9 rounded-full border border-gray-200 text-xl leading-none text-gray-500"
+                aria-label="Fechar carrinho"
+              >
+                ×
+              </button>
+            </div>
+            <div className="max-h-[calc(88dvh-4rem)] overflow-y-auto">
+              <Carrinho {...carrinhoProps} />
+            </div>
+          </div>
+        </div>
+      )}
       {aviso && (
         <ModalAviso
           {...aviso}
@@ -371,6 +410,44 @@ export default function Vendas() {
 }
 
 /* ============== CARRINHO ============== */
+
+function BarraCarrinhoMobile({
+  totalItens,
+  totalFinal,
+  podePagar,
+  salvando,
+  formatarMoeda,
+  onAbrir
+}) {
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 px-4 py-3 shadow-[0_-10px_30px_rgba(15,23,42,0.12)] backdrop-blur lg:hidden">
+      <div className="mx-auto flex max-w-xl items-center gap-3">
+        <button
+          type="button"
+          onClick={onAbrir}
+          className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-left"
+        >
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-gray-500">Carrinho</p>
+            <p className="truncate text-sm font-bold text-[#2D2E47]">
+              {totalItens} item(ns) • {formatarMoeda(totalFinal)}
+            </p>
+          </div>
+          <CartIcon className="h-5 w-5 shrink-0 text-[#2F8AA3]" />
+        </button>
+
+        <button
+          type="button"
+          onClick={onAbrir}
+          disabled={!podePagar || salvando}
+          className="h-12 shrink-0 rounded-xl bg-[#2F8AA3] px-4 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Finalizar
+        </button>
+      </div>
+    </div>
+  )
+}
 
 function Carrinho({
   itens,
