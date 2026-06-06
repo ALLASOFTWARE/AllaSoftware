@@ -1,43 +1,42 @@
+import { lazy, Suspense } from "react"
 import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom"
 
 import Login from "./pages/Login"
 import EsqueceuSenha from "./pages/EsqueceuSenha"
 import ResetarSenha from "./pages/ResetarSenha"
 import PlataformaLogin from "./pages/PlataformaLogin"
-import PlataformaEmpresas from "./pages/PlataformaEmpresas"
-
-import Dashboard from "./pages/Dashboard"
-import Clientes from "./pages/Clientes"
-import ClienteDetalhe from "./pages/ClienteDetalhe"
-import ClienteFinanceiro from "./pages/ClienteFinanceiro"
-
-import Servicos from "./pages/Servicos"
-import Produtos from "./pages/Produtos"
-import Vendas from "./pages/Vendas"
-import ContasReceber from "./pages/ContasReceber"
-import ContasPagar from "./pages/ContasPagar"
-import Agendamentos from "./pages/Agendamentos"
-
-import Transacoes from "./pages/Transacoes"
-import DashboardFinanceiro from "./pages/DashboardFInanceiro"
-import Relatorio from "./pages/Relatorio"
-import Comissoes from "./pages/Comissoes"
-
-import Usuarios from "./pages/Usuarios"
-import Equipe from "./pages/Equipe"
-import Perfil from "./pages/Perfil"
-import Empresa from "./pages/Empresa"
-import WhatsAppConfig from "./pages/WhatsAppConfig"
-import AcessoNegado from "./pages/AcessoNegado"
 
 import PrivateRoute from "./routes/PrivateRoute"
 import PlatformPrivateRoute from "./routes/PlatformPrivateRoute"
 import PermissaoRoute from "./components/PermissaoRoute"
 
+const PlataformaEmpresas = lazy(() => import("./pages/PlataformaEmpresas"))
+const Dashboard = lazy(() => import("./pages/Dashboard"))
+const Clientes = lazy(() => import("./pages/Clientes"))
+const ClienteDetalhe = lazy(() => import("./pages/ClienteDetalhe"))
+const ClienteFinanceiro = lazy(() => import("./pages/ClienteFinanceiro"))
+const Servicos = lazy(() => import("./pages/Servicos"))
+const Produtos = lazy(() => import("./pages/Produtos"))
+const Vendas = lazy(() => import("./pages/Vendas"))
+const ContasReceber = lazy(() => import("./pages/ContasReceber"))
+const ContasPagar = lazy(() => import("./pages/ContasPagar"))
+const Agendamentos = lazy(() => import("./pages/Agendamentos"))
+const Transacoes = lazy(() => import("./pages/Transacoes"))
+const DashboardFinanceiro = lazy(() => import("./pages/DashboardFInanceiro"))
+const Relatorio = lazy(() => import("./pages/Relatorio"))
+const Comissoes = lazy(() => import("./pages/Comissoes"))
+const Usuarios = lazy(() => import("./pages/Usuarios"))
+const Equipe = lazy(() => import("./pages/Equipe"))
+const Perfil = lazy(() => import("./pages/Perfil"))
+const Empresa = lazy(() => import("./pages/Empresa"))
+const WhatsAppConfig = lazy(() => import("./pages/WhatsAppConfig"))
+const AcessoNegado = lazy(() => import("./pages/AcessoNegado"))
+
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
+      <Suspense fallback={<CarregandoRota />}>
+        <Routes>
         {/* Públicas */}
         <Route path="/" element={<Login />} />
         <Route path="/cadastro-empresa" element={<Navigate to="/" replace />} />
@@ -278,8 +277,25 @@ function App() {
             </PrivateRoute>
           }
         />
-      </Routes>
+        </Routes>
+      </Suspense>
     </BrowserRouter>
+  )
+}
+
+function CarregandoRota() {
+  return (
+    <div className="min-h-screen bg-[#F5F7FA] px-4 py-6">
+      <div className="mx-auto max-w-6xl animate-pulse space-y-4">
+        <div className="h-8 w-48 rounded-xl bg-gray-200" />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="h-24 rounded-xl bg-white shadow-sm" />
+          ))}
+        </div>
+        <div className="h-72 rounded-2xl bg-white shadow-sm" />
+      </div>
+    </div>
   )
 }
 
