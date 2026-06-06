@@ -5,10 +5,9 @@ export const auth = async (req, res, next) => {
   let token = req.headers.authorization
 
   if (!token) {
-    return res.status(401).json({ error: "Token não enviado" })
+    return res.status(401).json({ error: "Token nao enviado" })
   }
 
-  // Remover "Bearer " se existir
   if (token.startsWith("Bearer ")) {
     token = token.slice(7)
   }
@@ -28,17 +27,38 @@ export const auth = async (req, res, next) => {
     })
 
     if (!empresa) {
-      return res.status(401).json({ error: "Empresa não encontrada" })
+      return res.status(401).json({ error: "Empresa nao encontrada" })
     }
 
     if (!["ativa", "teste"].includes(empresa.statusAssinatura)) {
       return res.status(403).json({
-        error: "A assinatura desta empresa não está ativa. Entre em contato com a AllaSoftware."
+        error: "A assinatura desta empresa nao esta ativa. Entre em contato com a AllaSoftware."
       })
+    }
+
+    if (req.usuarioId) {
+      const usuario = await prisma.usuario.findFirst({
+        where: {
+          id: req.usuarioId,
+          empresaId: req.empresaId
+        },
+        select: {
+          role: true,
+          status: true
+        }
+      })
+
+      if (!usuario || usuario.status !== "ativo") {
+        return res.status(403).json({
+          error: "Usuario inativo ou sem acesso"
+        })
+      }
+
+      req.role = usuario.role
     }
 
     next()
   } catch (err) {
-    return res.status(401).json({ error: "Token inválido" })
+    return res.status(401).json({ error: "Token invalido" })
   }
 }

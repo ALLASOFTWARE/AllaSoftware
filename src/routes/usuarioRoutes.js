@@ -10,7 +10,10 @@ import {
 } from "../controllers/usuarioController.js"
 
 import { auth } from "../middlewares/auth.js"
-import { permitirPermissao } from "../middlewares/permitirPermissao.js"
+import {
+  permitirPermissao,
+  permitirQualquerPermissao
+} from "../middlewares/permitirPermissao.js"
 
 export default (app) => {
   // Perfil do usuário logado
@@ -26,5 +29,10 @@ export default (app) => {
   // Pode manter por enquanto, mas vamos usar mais "inativar" do que excluir
   app.delete("/usuarios/:id", auth, permitirPermissao("usuarios", "excluir"), deletarUsuario)
 
-  app.get("/profissionais", auth, listarProfissionais)
+  app.get(
+    "/profissionais",
+    auth,
+    permitirQualquerPermissao("agendamentos", "financeiro", "usuarios"),
+    listarProfissionais
+  )
 }
