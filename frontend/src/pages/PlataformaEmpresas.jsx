@@ -167,7 +167,16 @@ export default function PlataformaEmpresas() {
     total: empresas.length,
     ativas: empresas.filter((empresa) => empresa.statusAssinatura === "ativa").length,
     bloqueadas: empresas.filter((empresa) => empresa.statusAssinatura === "bloqueada").length,
-    usuariosAtivos: empresas.reduce((total, empresa) => total + Number(empresa.usuariosAtivos || 0), 0)
+    usuariosAtivos: empresas.reduce((total, empresa) => total + Number(empresa.usuariosAtivos || 0), 0),
+    whatsappMes: empresas.reduce(
+      (total, empresa) => total + Number(empresa.uso?.whatsapp?.enviadas || 0),
+      0
+    ),
+    whatsappExcedentes: empresas.reduce(
+      (total, empresa) => total + Number(empresa.uso?.whatsapp?.excedentes || 0),
+      0
+    ),
+    empresasNoLimite: empresas.filter((empresa) => empresa.uso?.whatsapp?.limiteAtingido).length
   }
 
   return (
@@ -212,12 +221,20 @@ export default function PlataformaEmpresas() {
           </button>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
           <Resumo label="Empresas" value={resumo.total} />
           <Resumo label="Ativas" value={resumo.ativas} />
           <Resumo label="Bloqueadas" value={resumo.bloqueadas} />
+          <Resumo label="WhatsApp no mes" value={resumo.whatsappMes} />
+          <Resumo label="Excedentes" value={resumo.whatsappExcedentes} destaque={resumo.whatsappExcedentes > 0} />
           <Resumo label="Usuários ativos" value={resumo.usuariosAtivos} />
         </div>
+
+        {resumo.empresasNoLimite > 0 && (
+          <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm text-amber-800">
+            {resumo.empresasNoLimite} empresa(s) atingiram o limite mensal de WhatsApp. Verifique quais estao bloqueadas ou enviando excedente.
+          </div>
+        )}
 
         <div className="rounded-2xl border border-gray-100 bg-white shadow-sm">
           <div className="border-b border-gray-100 p-4">
@@ -236,9 +253,12 @@ export default function PlataformaEmpresas() {
           ) : (
             <div className="divide-y divide-gray-100">
               {empresasFiltradas.map((empresa) => (
-                <div key={empresa.id} className="grid gap-4 p-5 lg:grid-cols-[minmax(0,1.5fr)_1fr_1fr_auto] lg:items-center">
+                <div key={empresa.id} className="grid gap-4 p-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto] xl:items-center">
                   <div>
-                    <p className="font-semibold text-[#2D2E47]">{empresa.nome}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-semibold text-[#2D2E47]">{empresa.nome}</p>
+                      <StatusPill status={empresa.statusAssinatura} />
+                    </div>
                     <p className="text-sm text-gray-500">{empresa.email}</p>
                     <p className="text-xs text-gray-400 mt-1">
                       Admin: {empresa.admin?.nome || "Não definido"}
@@ -254,9 +274,30 @@ export default function PlataformaEmpresas() {
 
                   <div>
                     <p className="text-xs uppercase tracking-wide text-gray-400">Usuários ativos</p>
-                    <p className="text-sm font-medium text-[#2D2E47]">
-                      {empresa.usuariosAtivos}/{empresa.limiteFuncionarios}
-                    </p>
+                    <UsoBarra
+                      label="Usuarios ativos"
+                      atual={empresa.uso?.funcionarios?.ativos || empresa.usuariosAtivos || 0}
+                      limite={empresa.uso?.funcionarios?.limite || empresa.limiteFuncionarios}
+                      percentual={empresa.uso?.funcionarios?.percentual || 0}
+                      excedentes={empresa.uso?.funcionarios?.excedentes || 0}
+                    />
+                    <div className="mt-3">
+                      <UsoBarra
+                        label="WhatsApp no mes"
+                        atual={empresa.uso?.whatsapp?.enviadas || 0}
+                        limite={empresa.uso?.whatsapp?.limite || 350}
+                        percentual={empresa.uso?.whatsapp?.percentual || 0}
+                        excedentes={empresa.uso?.whatsapp?.excedentes || 0}
+                        bloqueado={empresa.uso?.whatsapp?.bloqueado}
+                        detalhe={
+                          empresa.uso?.whatsapp?.bloqueado
+                            ? "envio bloqueado"
+                            : empresa.uso?.whatsapp?.permitirExcedente
+                              ? "excedente permitido"
+                              : "para no limite"
+                        }
+                      />
+                    </div>
                   </div>
 
                   <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
@@ -408,11 +449,70 @@ export default function PlataformaEmpresas() {
   )
 }
 
-function Resumo({ label, value }) {
+function Resumo({ label, value, destaque = false }) {
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+    <div className={`rounded-2xl border bg-white p-5 shadow-sm ${
+      destaque ? "border-amber-200" : "border-gray-100"
+    }`}>
       <p className="text-sm text-gray-500">{label}</p>
-      <p className="mt-2 text-2xl font-bold text-[#2D2E47]">{value}</p>
+      <p className={`mt-2 text-2xl font-bold ${
+        destaque ? "text-amber-700" : "text-[#2D2E47]"
+      }`}>{value}</p>
+    </div>
+  )
+}
+
+function StatusPill({ status }) {
+  const classes = {
+    ativa: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    teste: "bg-blue-50 text-blue-700 border-blue-100",
+    bloqueada: "bg-amber-50 text-amber-700 border-amber-100",
+    cancelada: "bg-red-50 text-red-700 border-red-100"
+  }
+
+  return (
+    <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
+      classes[status] || "bg-gray-50 text-gray-600 border-gray-100"
+    }`}>
+      {status || "sem status"}
+    </span>
+  )
+}
+
+function UsoBarra({
+  label,
+  atual,
+  limite,
+  percentual,
+  excedentes = 0,
+  bloqueado = false,
+  detalhe = ""
+}) {
+  const cor =
+    bloqueado || excedentes > 0
+      ? "bg-red-500"
+      : percentual >= 90
+        ? "bg-amber-500"
+        : "bg-[#2F8AA3]"
+
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{label}</p>
+        <p className="text-xs font-medium text-[#2D2E47]">
+          {atual}/{limite}
+        </p>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+        <div
+          className={`h-full rounded-full ${cor}`}
+          style={{ width: `${Math.min(percentual || 0, 100)}%` }}
+        />
+      </div>
+      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-gray-500">
+        {detalhe && <span>{detalhe}</span>}
+        {excedentes > 0 && <span className="font-semibold text-red-600">{excedentes} excedente(s)</span>}
+      </div>
     </div>
   )
 }

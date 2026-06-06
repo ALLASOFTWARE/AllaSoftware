@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs"
 import prisma from "../config/prisma.js"
 import { gerarPlataformaAccessToken } from "../utils/jwt.js"
 import { enviarEmailRegistro } from "../services/emailService.js"
+import { LIMITE_MENSAGENS_WHATSAPP_GRATIS } from "../services/whatsappService.js"
 
 const planoPadrao = {
   start: 2,
@@ -40,6 +41,15 @@ const selecionarEmpresaPainel = {
       createdAt: "asc"
     }
   },
+  whatsappConfig: {
+    select: {
+      ativo: true,
+      limiteMensagensGratis: true,
+      permitirExcedente: true,
+      ultimoErro: true,
+      updatedAt: true
+    }
+  },
   _count: {
     select: {
       usuarios: true
@@ -47,9 +57,18 @@ const selecionarEmpresaPainel = {
   }
 }
 
-const formatarEmpresaPainel = (empresa) => {
+const formatarEmpresaPainel = (empresa, usoWhatsApp = null) => {
   const usuariosAtivos = empresa.usuarios.filter((usuario) => usuario.status === "ativo")
   const admin = empresa.usuarios.find((usuario) => usuario.role === "admin")
+  const limiteWhatsApp =
+    empresa.whatsappConfig?.limiteMensagensGratis || LIMITE_MENSAGENS_WHATSAPP_GRATIS
+  const mensagensWhatsApp = usoWhatsApp?.enviadas || 0
+  const bloqueadasLimite = usoWhatsApp?.bloqueadasLimite || 0
+  const excedentesWhatsApp = Math.max(mensagensWhatsApp - limiteWhatsApp, 0)
+  const percentualWhatsApp =
+    limiteWhatsApp > 0
+      ? Math.min(Math.round((mensagensWhatsApp / limiteWhatsApp) * 100), 100)
+      : 100
 
   return {
     id: empresa.id,
@@ -62,6 +81,30 @@ const formatarEmpresaPainel = (empresa) => {
     createdAt: empresa.createdAt,
     totalUsuarios: empresa._count.usuarios,
     usuariosAtivos: usuariosAtivos.length,
+    uso: {
+      funcionarios: {
+        ativos: usuariosAtivos.length,
+        limite: empresa.limiteFuncionarios,
+        percentual:
+          empresa.limiteFuncionarios > 0
+            ? Math.min(Math.round((usuariosAtivos.length / empresa.limiteFuncionarios) * 100), 100)
+            : 100,
+        excedentes: Math.max(usuariosAtivos.length - empresa.limiteFuncionarios, 0)
+      },
+      whatsapp: {
+        ativo: Boolean(empresa.whatsappConfig?.ativo),
+        limite: limiteWhatsApp,
+        enviadas: mensagensWhatsApp,
+        restantes: Math.max(limiteWhatsApp - mensagensWhatsApp, 0),
+        excedentes: excedentesWhatsApp,
+        bloqueadasLimite,
+        percentual: percentualWhatsApp,
+        permitirExcedente: Boolean(empresa.whatsappConfig?.permitirExcedente),
+        limiteAtingido: mensagensWhatsApp >= limiteWhatsApp,
+        bloqueado: mensagensWhatsApp >= limiteWhatsApp && !empresa.whatsappConfig?.permitirExcedente,
+        ultimoErro: empresa.whatsappConfig?.ultimoErro || null
+      }
+    },
     admin: admin
       ? {
           id: admin.id,
@@ -139,14 +182,66 @@ export const perfilPlataforma = async (req, res) => {
 
 export const listarEmpresasPlataforma = async (req, res) => {
   try {
-    const empresas = await prisma.empresa.findMany({
+    const inicioMes = new Date()
+    inicioMes.setDate(1)
+    inicioMes.setHours(0, 0, 0, 0)
+
+    const fimMes = new Date(inicioMes)
+    fimMes.setMonth(fimMes.getMonth() + 1)
+
+    const [empresas, usoMensagens] = await Promise.all([
+      prisma.empresa.findMany({
       select: selecionarEmpresaPainel,
       orderBy: {
         createdAt: "desc"
       }
+      }),
+      prisma.mensagemWhatsApp.groupBy({
+        by: ["empresaId", "status"],
+        where: {
+          OR: [
+            {
+              status: "enviado",
+              enviadoEm: {
+                gte: inicioMes,
+                lt: fimMes
+              }
+            },
+            {
+              status: "bloqueado_limite",
+              createdAt: {
+                gte: inicioMes,
+                lt: fimMes
+              }
+            }
+          ]
+        },
+        _count: {
+          _all: true
+        }
+      })
+    ])
+
+    const usoPorEmpresa = new Map()
+
+    usoMensagens.forEach((item) => {
+      const atual = usoPorEmpresa.get(item.empresaId) || {
+        enviadas: 0,
+        bloqueadasLimite: 0
+      }
+
+      if (item.status === "enviado") {
+        atual.enviadas += item._count._all
+      }
+
+      if (item.status === "bloqueado_limite") {
+        atual.bloqueadasLimite += item._count._all
+      }
+
+      usoPorEmpresa.set(item.empresaId, atual)
     })
 
-    res.json(empresas.map(formatarEmpresaPainel))
+    res.json(empresas.map((empresa) => formatarEmpresaPainel(empresa, usoPorEmpresa.get(empresa.id))))
   } catch (error) {
     console.error("Erro ao listar empresas da plataforma:", error)
     res.status(500).json({ error: "Erro ao listar empresas" })
