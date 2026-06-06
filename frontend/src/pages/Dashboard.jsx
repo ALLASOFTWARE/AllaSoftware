@@ -151,7 +151,7 @@ export default function Dashboard() {
       {/* KPIs compactos — operação */}
       <SectionTitle>Alertas operacionais</SectionTitle>
       <div className="mb-6">
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2 xl:gap-3">
           <AlertaResumo
             label="Criticos"
             value={alertas?.resumo?.criticos || 0}
@@ -187,7 +187,7 @@ export default function Dashboard() {
       </div>
 
       <SectionTitle>Operação</SectionTitle>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiMini
           label="Clientes"
           value={dados?.totalClientes || 0}
@@ -218,7 +218,7 @@ export default function Dashboard() {
 
       {/* Financeiro resumido */}
       <SectionTitle className="mt-6">Cobranças</SectionTitle>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <KpiInline
           label="Total em aberto"
           value={formatarMoeda(dados?.totalEmAberto)}
@@ -316,11 +316,11 @@ function AlertaResumo({ label, value, tone = "info" }) {
   }
 
   return (
-    <div className={`rounded-xl border px-4 py-3 ${classes[tone] || classes.info}`}>
-      <span className="block text-xs font-semibold uppercase tracking-wide">
+    <div className={`rounded-xl border px-3 py-2.5 sm:px-4 sm:py-3 ${classes[tone] || classes.info}`}>
+      <span className="block text-[10px] font-semibold uppercase tracking-wide sm:text-xs">
         {label}
       </span>
-      <span className="mt-1 block text-2xl font-bold leading-none">{value}</span>
+      <span className="mt-1 block text-xl font-bold leading-none sm:text-2xl">{value}</span>
     </div>
   )
 }
@@ -331,10 +331,10 @@ function AlertaOperacionalCard({ alerta, onAbrir }) {
   const itens = (alerta.itens || []).slice(0, 3)
 
   return (
-    <div className={`rounded-xl border p-4 shadow-sm ${tone.card}`}>
-      <div className="flex items-start gap-3">
-        <div className={`h-10 w-10 shrink-0 rounded-full border flex items-center justify-center ${tone.icon}`}>
-          {createElement(Icon, { className: "h-5 w-5" })}
+    <div className={`rounded-xl border p-3 shadow-sm sm:p-4 ${tone.card}`}>
+      <div className="flex items-start gap-2.5 sm:gap-3">
+        <div className={`h-8 w-8 shrink-0 rounded-full border flex items-center justify-center sm:h-10 sm:w-10 ${tone.icon}`}>
+          {createElement(Icon, { className: "h-4 w-4 sm:h-5 sm:w-5" })}
         </div>
 
         <div className="min-w-0 flex-1">
@@ -343,7 +343,7 @@ function AlertaOperacionalCard({ alerta, onAbrir }) {
               <h4 className="text-sm font-bold text-[#2D2E47] break-words">
                 {alerta.titulo}
               </h4>
-              <p className="mt-0.5 text-xs text-gray-600">{alerta.descricao}</p>
+              <p className="mt-0.5 hidden text-xs text-gray-600 sm:block">{alerta.descricao}</p>
             </div>
             <span className={`rounded-full px-2 py-1 text-xs font-bold ${tone.badge}`}>
               {alerta.quantidade}
@@ -351,7 +351,7 @@ function AlertaOperacionalCard({ alerta, onAbrir }) {
           </div>
 
           {alerta.valor !== null && alerta.valor !== undefined && (
-            <p className="mt-2 text-sm font-semibold text-[#2D2E47]">
+            <p className="mt-1.5 text-sm font-semibold text-[#2D2E47] sm:mt-2">
               {formatarMoeda(alerta.valor)}
             </p>
           )}
@@ -377,7 +377,7 @@ function AlertaOperacionalCard({ alerta, onAbrir }) {
           )}
 
           {itens.length > 0 && (
-            <div className="mt-3 space-y-1.5">
+            <div className="mt-2 space-y-1 sm:mt-3 sm:space-y-1.5">
               {itens.map((item) => (
                 <p key={`${alerta.id}-${item.id}`} className="truncate text-xs text-gray-700">
                   {formatarItemAlerta(alerta.tipo, item)}
@@ -390,7 +390,7 @@ function AlertaOperacionalCard({ alerta, onAbrir }) {
             <button
               type="button"
               onClick={onAbrir}
-              className="mt-3 inline-flex items-center gap-1 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-[#2F8AA3] shadow-sm hover:bg-gray-50"
+              className="mt-2 inline-flex items-center gap-1 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-[#2F8AA3] shadow-sm hover:bg-gray-50 sm:mt-3 sm:py-2"
             >
               Ver detalhes
               <ArrowRight className="h-3.5 w-3.5" />
@@ -451,19 +451,19 @@ function KpiMini({ label, value, hint, accent = "indigo", Icon = ReceiptText }) 
   const accentClass = ACCENTS[accent] || ACCENTS.indigo
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-3 min-h-20 flex items-start justify-between gap-3 sm:min-h-24 sm:p-4 sm:gap-4">
+    <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-3 min-h-[5.25rem] flex items-start justify-between gap-2 sm:min-h-24 sm:p-4 sm:gap-4">
       <div className="min-w-0">
-        <span className="text-xs font-medium text-[#4F5D75] leading-tight">
+        <span className="text-[11px] font-medium text-[#4F5D75] leading-tight sm:text-xs">
           {label}
         </span>
-        <span className="block text-xl font-bold text-[#0B1437] mt-1 leading-tight break-words sm:text-2xl">
+        <span className="block text-lg font-bold text-[#0B1437] mt-1 leading-tight break-words sm:text-2xl">
           {value}
         </span>
         {hint && <span className="block text-xs font-medium text-[#00AFA8] mt-2">{hint}</span>}
       </div>
 
-      <div className={`h-9 w-9 shrink-0 rounded-full border flex items-center justify-center sm:h-10 sm:w-10 ${accentClass}`}>
-        {createElement(Icon, { className: "h-4 w-4 sm:h-5 sm:w-5" })}
+      <div className={`h-8 w-8 shrink-0 rounded-full border flex items-center justify-center sm:h-10 sm:w-10 ${accentClass}`}>
+        {createElement(Icon, { className: "h-3.5 w-3.5 sm:h-5 sm:w-5" })}
       </div>
     </div>
   )
@@ -478,13 +478,13 @@ function KpiInline({ label, value, tone = "neutral", Icon = DollarSign }) {
       : "bg-cyan-50 text-[#0891B2] border-cyan-100"
 
   return (
-    <div className="bg-white border border-gray-200/80 rounded-xl shadow-sm p-3 flex items-center justify-between gap-3 sm:p-4 sm:gap-4">
+    <div className="bg-white border border-gray-200/80 rounded-xl shadow-sm p-3 flex items-center justify-between gap-2 sm:p-4 sm:gap-4">
       <div>
-        <span className="text-xs font-medium text-[#4F5D75]">{label}</span>
-        <span className={`block text-base font-bold mt-1 break-words sm:text-lg ${toneClass}`}>{value}</span>
+        <span className="text-[11px] font-medium text-[#4F5D75] sm:text-xs">{label}</span>
+        <span className={`block text-sm font-bold mt-1 break-words sm:text-lg ${toneClass}`}>{value}</span>
       </div>
-      <div className={`h-9 w-9 shrink-0 rounded-full border flex items-center justify-center sm:h-10 sm:w-10 ${iconClass}`}>
-        {createElement(Icon, { className: "h-4 w-4 sm:h-5 sm:w-5" })}
+      <div className={`h-8 w-8 shrink-0 rounded-full border flex items-center justify-center sm:h-10 sm:w-10 ${iconClass}`}>
+        {createElement(Icon, { className: "h-3.5 w-3.5 sm:h-5 sm:w-5" })}
       </div>
     </div>
   )
