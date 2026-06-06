@@ -1,5 +1,6 @@
 import prisma from "../config/prisma.js"
 import { encryptText } from "../utils/crypto.js"
+import { getPaginationParams, montarRespostaPaginada } from "../utils/pagination.js"
 import {
   enviarTemplateWhatsApp,
   normalizarTelefoneWhatsApp,
@@ -209,10 +210,18 @@ export const testarConfiguracaoWhatsApp = async (req, res) => {
 
 export const listarMensagensWhatsApp = async (req, res) => {
   try {
-    const mensagens = await prisma.mensagemWhatsApp.findMany({
-      where: {
-        empresaId: req.empresaId
-      },
+    const { status } = req.query
+    const { temPaginacao, page, limit, skip } = getPaginationParams(req.query)
+    const where = {
+      empresaId: req.empresaId
+    }
+
+    if (status) {
+      where.status = status
+    }
+
+    const queryMensagens = {
+      where,
       include: {
         cliente: {
           select: {
@@ -231,9 +240,24 @@ export const listarMensagensWhatsApp = async (req, res) => {
       },
       orderBy: {
         createdAt: "desc"
-      },
-      take: 100
-    })
+      }
+    }
+
+    if (temPaginacao) {
+      queryMensagens.skip = skip
+      queryMensagens.take = limit
+    } else {
+      queryMensagens.take = 100
+    }
+
+    const [mensagens, total] = await Promise.all([
+      prisma.mensagemWhatsApp.findMany(queryMensagens),
+      temPaginacao ? prisma.mensagemWhatsApp.count({ where }) : Promise.resolve(null)
+    ])
+
+    if (temPaginacao) {
+      return res.json(montarRespostaPaginada({ data: mensagens, total, page, limit }))
+    }
 
     res.json(mensagens)
   } catch (error) {

@@ -1,4 +1,5 @@
 import prisma from "../config/prisma.js"
+import { getPaginationParams, montarRespostaPaginada } from "../utils/pagination.js"
 
 const calcularStatusContaPagar = (valorTotal, valorPago, vencimento, statusAtual) => {
   if (statusAtual === "cancelada") return "cancelada"
@@ -16,33 +17,67 @@ const calcularStatusContaPagar = (valorTotal, valorPago, vencimento, statusAtual
 }
 
 const atualizarContasPagarVencidasDaEmpresa = async (empresaId) => {
-  const contas = await prisma.contaPagar.findMany({
+  await prisma.contaPagar.updateMany({
     where: {
       empresaId,
-      status: {
-        notIn: ["pago", "cancelada"]
+      status: "pendente",
+      vencimento: {
+        lt: new Date()
       }
+    },
+    data: {
+      status: "vencido"
     }
   })
+}
 
-  for (const conta of contas) {
-    const novoStatus = calcularStatusContaPagar(
-      conta.valorTotal,
-      conta.valorPago,
-      conta.vencimento,
-      conta.status
-    )
+const montarResumoContasPagar = async (where, total) => {
+  const statusEmAberto = ["pendente", "parcial", "vencido"]
+  const statusFiltro = where.status
+  const whereEmAberto = {
+    ...where,
+    status:
+      statusFiltro && statusEmAberto.includes(statusFiltro)
+        ? statusFiltro
+        : statusFiltro
+        ? "__sem_resultado__"
+        : {
+            in: statusEmAberto
+          }
+  }
 
-    if (conta.status !== novoStatus) {
-      await prisma.contaPagar.update({
-        where: {
-          id: conta.id
-        },
-        data: {
-          status: novoStatus
-        }
-      })
-    }
+  const [porStatus, valoresEmAberto] = await Promise.all([
+    prisma.contaPagar.groupBy({
+      by: ["status"],
+      where,
+      _count: {
+        _all: true
+      }
+    }),
+    prisma.contaPagar.aggregate({
+      where: whereEmAberto,
+      _sum: {
+        valorTotal: true,
+        valorPago: true
+      }
+    })
+  ])
+
+  const quantidadePorStatus = porStatus.reduce((acc, item) => {
+    acc[item.status] = item._count._all
+    return acc
+  }, {})
+
+  return {
+    total,
+    pendentes: quantidadePorStatus.pendente || 0,
+    parciais: quantidadePorStatus.parcial || 0,
+    vencidas: quantidadePorStatus.vencido || 0,
+    pagas: quantidadePorStatus.pago || 0,
+    canceladas: quantidadePorStatus.cancelada || 0,
+    totalEmAberto:
+      Number(valoresEmAberto._sum.valorTotal || 0) -
+      Number(valoresEmAberto._sum.valorPago || 0)
   }
 }
 
@@ -126,6 +161,7 @@ export const criarContaPagar = async (req, res) => {
 export const listarContasPagar = async (req, res) => {
   try {
     const { status, categoria } = req.query
+    const { temPaginacao, page, limit, skip } = getPaginationParams(req.query)
     await atualizarContasPagarVencidasDaEmpresa(req.empresaId)
 
     const where = {
@@ -140,7 +176,7 @@ export const listarContasPagar = async (req, res) => {
       where.categoria = categoria
     }
 
-    const contas = await prisma.contaPagar.findMany({
+    const queryContas = {
       where,
       include: {
         pagamentos: {
@@ -160,7 +196,22 @@ export const listarContasPagar = async (req, res) => {
           createdAt: "desc"
         }
       ]
-    })
+    }
+
+    if (temPaginacao) {
+      queryContas.skip = skip
+      queryContas.take = limit
+    }
+
+    const [contas, total] = await Promise.all([
+      prisma.contaPagar.findMany(queryContas),
+      temPaginacao ? prisma.contaPagar.count({ where }) : Promise.resolve(null)
+    ])
+
+    if (temPaginacao) {
+      const summary = await montarResumoContasPagar(where, total)
+      return res.json(montarRespostaPaginada({ data: contas, total, page, limit, summary }))
+    }
 
     res.json(contas)
   } catch (error) {

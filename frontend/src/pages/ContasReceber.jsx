@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import AppLayout from "../layouts/AppLayout"
 import api from "../services/api"
@@ -27,6 +27,14 @@ export default function ContasReceber() {
   const [clienteIdFiltro, setClienteIdFiltro] = useState("")
   const [paginaAtual, setPaginaAtual] = useState(1)
   const [itensPorPagina, setItensPorPagina] = useState(10)
+  const [totalContas, setTotalContas] = useState(0)
+  const [resumo, setResumo] = useState({
+    total: 0,
+    pendentes: 0,
+    parciais: 0,
+    vencidas: 0,
+    totalEmAberto: 0
+  })
 
   const [mostrarNovaContaModal, setMostrarNovaContaModal] = useState(false)
   const [mostrarPagamentoModal, setMostrarPagamentoModal] = useState(false)
@@ -47,8 +55,11 @@ export default function ContasReceber() {
 
   useEffect(() => {
     setPaginaAtual(1)
-    carregarDados()
   }, [status, clienteIdFiltro])
+
+  useEffect(() => {
+    carregarDados()
+  }, [status, clienteIdFiltro, paginaAtual, itensPorPagina])
 
   const carregarDados = async () => {
     try {
@@ -57,13 +68,24 @@ export default function ContasReceber() {
       const params = new URLSearchParams()
       if (status) params.append("status", status)
       if (clienteIdFiltro) params.append("clienteId", clienteIdFiltro)
+      params.append("page", String(paginaAtual))
+      params.append("limit", String(itensPorPagina))
 
       const [contasRes, clientesRes] = await Promise.all([
         api.get(`/contas-receber?${params.toString()}`),
         api.get("/clientes")
       ])
 
-      setContas(contasRes.data || [])
+      const payload = contasRes.data || {}
+      setContas(payload.data || [])
+      setTotalContas(payload.pagination?.total || 0)
+      setResumo({
+        total: payload.summary?.total || payload.pagination?.total || 0,
+        pendentes: payload.summary?.pendentes || 0,
+        parciais: payload.summary?.parciais || 0,
+        vencidas: payload.summary?.vencidas || 0,
+        totalEmAberto: payload.summary?.totalEmAberto || 0
+      })
       setClientes(clientesRes.data || [])
     } catch (error) {
       console.error("Erro ao carregar contas a receber:", error)
@@ -81,35 +103,12 @@ export default function ContasReceber() {
     return Number(conta.valorTotal || 0) - Number(conta.valorPago || 0)
   }
 
-  const resumo = useMemo(() => {
-    const pendentes = contas.filter((c) => c.status === "pendente").length
-    const parciais = contas.filter((c) => c.status === "parcial").length
-    const vencidas = contas.filter((c) => c.status === "vencido").length
-
-    const totalEmAberto = contas
-      .filter((c) => ["pendente", "parcial", "vencido"].includes(c.status))
-      .reduce((acc, conta) => acc + getSaldoRestante(conta), 0)
-
-    return {
-      total: contas.length,
-      pendentes,
-      parciais,
-      vencidas,
-      totalEmAberto
-    }
-  }, [contas])
-
-  const contasPaginadas = useMemo(() => {
-    const inicio = (paginaAtual - 1) * itensPorPagina
-    return contas.slice(inicio, inicio + itensPorPagina)
-  }, [contas, paginaAtual, itensPorPagina])
-
   useEffect(() => {
-    const totalPaginas = Math.max(1, Math.ceil(contas.length / itensPorPagina))
+    const totalPaginas = Math.max(1, Math.ceil(totalContas / itensPorPagina))
     if (paginaAtual > totalPaginas) {
       setPaginaAtual(totalPaginas)
     }
-  }, [contas.length, itensPorPagina, paginaAtual])
+  }, [totalContas, itensPorPagina, paginaAtual])
 
   const alterarItensPorPagina = (valor) => {
     setItensPorPagina(valor)
@@ -340,7 +339,7 @@ export default function ContasReceber() {
                   <div className="col-span-2 text-right">Ações</div>
                 </div>
 
-                {contasPaginadas.map((conta) => (
+                {contas.map((conta) => (
                   <div
                     key={conta.id}
                     className="grid grid-cols-12 gap-4 px-6 py-5 border-b border-gray-100 last:border-b-0"
@@ -401,7 +400,7 @@ export default function ContasReceber() {
               </div>
 
               <div className="xl:hidden p-4 space-y-4">
-                {contasPaginadas.map((conta) => (
+                {contas.map((conta) => (
                   <div
                     key={conta.id}
                     className="border border-gray-100 rounded-2xl p-4 shadow-sm"
@@ -467,7 +466,7 @@ export default function ContasReceber() {
               </div>
 
               <PaginacaoLista
-                total={contas.length}
+                total={totalContas}
                 pagina={paginaAtual}
                 porPagina={itensPorPagina}
                 onPaginaChange={setPaginaAtual}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import AppLayout from "../layouts/AppLayout"
 import api from "../services/api"
 import { formatarMoeda } from "../utils/formatters"
@@ -24,6 +24,13 @@ export default function Produtos() {
   const [ordem, setOrdem] = useState("asc")
   const [paginaAtual, setPaginaAtual] = useState(1)
   const [itensPorPagina, setItensPorPagina] = useState(10)
+  const [totalProdutos, setTotalProdutos] = useState(0)
+  const [resumo, setResumo] = useState({
+    total: 0,
+    ativos: 0,
+    inativos: 0,
+    precoMedio: 0
+  })
 
   const [mostrarNovoModal, setMostrarNovoModal] = useState(false)
   const [mostrarEditarModal, setMostrarEditarModal] = useState(false)
@@ -54,13 +61,13 @@ export default function Produtos() {
   })
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setPaginaAtual(1)
-      carregarProdutos()
-    }, 300)
-
-    return () => clearTimeout(timer)
+    setPaginaAtual(1)
   }, [busca, status, ordem])
+
+  useEffect(() => {
+    const timer = setTimeout(carregarProdutos, 300)
+    return () => clearTimeout(timer)
+  }, [busca, status, ordem, paginaAtual, itensPorPagina])
 
   const carregarProdutos = async () => {
     try {
@@ -71,9 +78,19 @@ export default function Produtos() {
       if (busca) params.append("busca", busca)
       if (status) params.append("status", status)
       if (ordem) params.append("ordem", ordem)
+      params.append("page", String(paginaAtual))
+      params.append("limit", String(itensPorPagina))
 
       const response = await api.get(`/produtos?${params.toString()}`)
-      setProdutos(response.data)
+      const payload = response.data || {}
+      setProdutos(payload.data || [])
+      setTotalProdutos(payload.pagination?.total || 0)
+      setResumo({
+        total: payload.summary?.total || payload.pagination?.total || 0,
+        ativos: payload.summary?.ativos || 0,
+        inativos: payload.summary?.inativos || 0,
+        precoMedio: payload.summary?.precoMedio || 0
+      })
     } catch (error) {
       console.error("Erro ao carregar produtos:", error)
     } finally {
@@ -81,30 +98,12 @@ export default function Produtos() {
     }
   }
 
-  const resumo = useMemo(() => {
-    const total = produtos.length
-    const ativos = produtos.filter((p) => p.status === "ativo").length
-    const inativos = produtos.filter((p) => p.status === "inativo").length
-
-    const precoMedio =
-      total > 0
-        ? produtos.reduce((acc, p) => acc + Number(p.precoVarejo || 0), 0) / total
-        : 0
-
-    return { total, ativos, inativos, precoMedio }
-  }, [produtos])
-
-  const produtosPaginados = useMemo(() => {
-    const inicio = (paginaAtual - 1) * itensPorPagina
-    return produtos.slice(inicio, inicio + itensPorPagina)
-  }, [produtos, paginaAtual, itensPorPagina])
-
   useEffect(() => {
-    const totalPaginas = Math.max(1, Math.ceil(produtos.length / itensPorPagina))
+    const totalPaginas = Math.max(1, Math.ceil(totalProdutos / itensPorPagina))
     if (paginaAtual > totalPaginas) {
       setPaginaAtual(totalPaginas)
     }
-  }, [produtos.length, itensPorPagina, paginaAtual])
+  }, [totalProdutos, itensPorPagina, paginaAtual])
 
   const alterarItensPorPagina = (valor) => {
     setItensPorPagina(valor)
@@ -352,7 +351,7 @@ export default function Produtos() {
                   <div className="col-span-1 text-right">Ações</div>
                 </div>
 
-                {produtosPaginados.map((produto) => (
+                {produtos.map((produto) => (
                   <div
                     key={produto.id}
                     className="grid grid-cols-12 gap-4 px-6 py-5 border-b border-gray-100 last:border-b-0"
@@ -440,7 +439,7 @@ export default function Produtos() {
 
               {/* Cards mobile/tablet */}
               <div className="xl:hidden p-4 space-y-4">
-                {produtosPaginados.map((produto) => (
+                {produtos.map((produto) => (
                   <div
                     key={produto.id}
                     className="border border-gray-100 rounded-2xl p-4 shadow-sm"
@@ -526,7 +525,7 @@ export default function Produtos() {
               </div>
 
               <PaginacaoLista
-                total={produtos.length}
+                total={totalProdutos}
                 pagina={paginaAtual}
                 porPagina={itensPorPagina}
                 onPaginaChange={setPaginaAtual}

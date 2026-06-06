@@ -1,4 +1,5 @@
 import prisma from "../config/prisma.js"
+import { getPaginationParams, montarRespostaPaginada } from "../utils/pagination.js"
 
 const numeroOpcionalParaCriacao = (valor) => {
   if (valor === undefined || valor === null || valor === "") return null
@@ -9,6 +10,36 @@ const numeroOpcionalParaAtualizacao = (valor) => {
   if (valor === undefined) return undefined
   if (valor === null || valor === "") return null
   return Number(valor)
+}
+
+const montarResumoProdutos = async (where, total) => {
+  const [porStatus, agregados] = await Promise.all([
+    prisma.produto.groupBy({
+      by: ["status"],
+      where,
+      _count: {
+        _all: true
+      }
+    }),
+    prisma.produto.aggregate({
+      where,
+      _avg: {
+        precoVarejo: true
+      }
+    })
+  ])
+
+  const quantidadePorStatus = porStatus.reduce((acc, item) => {
+    acc[item.status] = item._count._all
+    return acc
+  }, {})
+
+  return {
+    total,
+    ativos: quantidadePorStatus.ativo || 0,
+    inativos: quantidadePorStatus.inativo || 0,
+    precoMedio: Number(agregados._avg.precoVarejo || 0)
+  }
 }
 
 // Criar produto
@@ -54,6 +85,7 @@ export const criarProduto = async (req, res) => {
 export const listarProdutos = async (req, res) => {
   try {
     const { busca, status, ordem } = req.query
+    const { temPaginacao, page, limit, skip } = getPaginationParams(req.query)
 
     const where = {
       empresaId: req.empresaId
@@ -70,12 +102,27 @@ export const listarProdutos = async (req, res) => {
       where.status = status
     }
 
-    const produtos = await prisma.produto.findMany({
+    const queryProdutos = {
       where,
       orderBy: {
         nome: ordem === "desc" ? "desc" : "asc"
       }
-    })
+    }
+
+    if (temPaginacao) {
+      queryProdutos.skip = skip
+      queryProdutos.take = limit
+    }
+
+    const [produtos, total] = await Promise.all([
+      prisma.produto.findMany(queryProdutos),
+      temPaginacao ? prisma.produto.count({ where }) : Promise.resolve(null)
+    ])
+
+    if (temPaginacao) {
+      const summary = await montarResumoProdutos(where, total)
+      return res.json(montarRespostaPaginada({ data: produtos, total, page, limit, summary }))
+    }
 
     res.json(produtos)
   } catch (error) {

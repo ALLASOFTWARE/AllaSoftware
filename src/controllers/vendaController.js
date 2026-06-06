@@ -1,6 +1,7 @@
 import prisma from "../config/prisma.js"
 import { gerarComprovanteVenda, imprimirTermico } from "../services/comprovanteService.js"
 import { criarComissao } from "../services/comissaoService.js"
+import { getPaginationParams, montarRespostaPaginada } from "../utils/pagination.js"
 
 const calcularStatusConta = (valorTotal, valorPago, vencimento) => {
   if (valorPago >= valorTotal) return "pago"
@@ -471,10 +472,12 @@ export const criarVenda = async (req, res) => {
 // Listar vendas
 export const listarVendas = async (req, res) => {
   try {
-    const vendas = await prisma.venda.findMany({
-      where: {
-        empresaId: req.empresaId
-      },
+    const { temPaginacao, page, limit, skip } = getPaginationParams(req.query)
+    const where = {
+      empresaId: req.empresaId
+    }
+    const queryVendas = {
+      where,
       include: {
         itens: true,
         contaReceber: true
@@ -482,7 +485,21 @@ export const listarVendas = async (req, res) => {
       orderBy: {
         createdAt: "desc"
       }
-    })
+    }
+
+    if (temPaginacao) {
+      queryVendas.skip = skip
+      queryVendas.take = limit
+    }
+
+    const [vendas, total] = await Promise.all([
+      prisma.venda.findMany(queryVendas),
+      temPaginacao ? prisma.venda.count({ where }) : Promise.resolve(null)
+    ])
+
+    if (temPaginacao) {
+      return res.json(montarRespostaPaginada({ data: vendas, total, page, limit }))
+    }
 
     res.json(vendas)
   } catch (error) {

@@ -34,21 +34,21 @@ export default function Dashboard() {
     const carregarResumo = async () => {
       try {
         const reqs = [
-          api.get("/clientes"),
+          api.get("/clientes?page=1&limit=1"),
+          api.get("/clientes?page=1&limit=1&status=pendente"),
           api.get("/dashboard/cobrancas"),
           api.get("/dashboard/vendas-serie").catch(() => ({ data: [] })),
         ]
         if (usuario?.id) reqs.push(api.get("/comissoes/me"))
 
-        const [clientesRes, cobrancasRes, serieRes, comissaoRes] =
+        const [clientesRes, clientesPendentesRes, cobrancasRes, serieRes, comissaoRes] =
           await Promise.all(reqs)
 
-        const clientes = clientesRes.data || []
         const cobrancas = cobrancasRes.data || {}
 
         setDados({
-          totalClientes: clientes.length,
-          clientesPendentes: clientes.filter((c) => c.status === "pendente").length,
+          totalClientes: clientesRes.data?.pagination?.total || 0,
+          clientesPendentes: clientesPendentesRes.data?.pagination?.total || 0,
           contasPendentes: cobrancas.contasPendentes || 0,
           contasVencidas: cobrancas.contasVencidas || 0,
           totalEmAberto: cobrancas.totalEmAberto || 0,

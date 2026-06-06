@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import AppLayout from "../layouts/AppLayout"
 import api from "../services/api"
@@ -22,6 +22,12 @@ export default function Clientes() {
   const [ordem, setOrdem] = useState("asc")
   const [paginaAtual, setPaginaAtual] = useState(1)
   const [itensPorPagina, setItensPorPagina] = useState(10)
+  const [totalClientes, setTotalClientes] = useState(0)
+  const [resumo, setResumo] = useState({
+    total: 0,
+    emDia: 0,
+    pendentes: 0
+  })
 
   const [mostrarNovoModal, setMostrarNovoModal] = useState(false)
   const [mostrarEditarModal, setMostrarEditarModal] = useState(false)
@@ -55,13 +61,13 @@ export default function Clientes() {
   })
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setPaginaAtual(1)
-      carregarClientes()
-    }, 300)
-
-    return () => clearTimeout(timer)
+    setPaginaAtual(1)
   }, [busca, status, ordem])
+
+  useEffect(() => {
+    const timer = setTimeout(carregarClientes, 300)
+    return () => clearTimeout(timer)
+  }, [busca, status, ordem, paginaAtual, itensPorPagina])
 
   const carregarClientes = async () => {
     try {
@@ -72,9 +78,18 @@ export default function Clientes() {
       if (busca) params.append("busca", busca)
       if (status) params.append("status", status)
       if (ordem) params.append("ordem", ordem)
+      params.append("page", String(paginaAtual))
+      params.append("limit", String(itensPorPagina))
 
       const response = await api.get(`/clientes?${params.toString()}`)
-      setClientes(response.data)
+      const payload = response.data || {}
+      setClientes(payload.data || [])
+      setTotalClientes(payload.pagination?.total || 0)
+      setResumo({
+        total: payload.summary?.total || payload.pagination?.total || 0,
+        emDia: payload.summary?.emDia || 0,
+        pendentes: payload.summary?.pendentes || 0
+      })
     } catch (error) {
       console.error("Erro ao carregar clientes:", error)
     } finally {
@@ -222,25 +237,12 @@ export default function Clientes() {
     }
   }
 
-  const resumo = useMemo(() => {
-    const total = clientes.length
-    const emDia = clientes.filter((c) => c.status === "em_dia").length
-    const pendentes = clientes.filter((c) => c.status === "pendente").length
-
-    return { total, emDia, pendentes }
-  }, [clientes])
-
-  const clientesPaginados = useMemo(() => {
-    const inicio = (paginaAtual - 1) * itensPorPagina
-    return clientes.slice(inicio, inicio + itensPorPagina)
-  }, [clientes, paginaAtual, itensPorPagina])
-
   useEffect(() => {
-    const totalPaginas = Math.max(1, Math.ceil(clientes.length / itensPorPagina))
+    const totalPaginas = Math.max(1, Math.ceil(totalClientes / itensPorPagina))
     if (paginaAtual > totalPaginas) {
       setPaginaAtual(totalPaginas)
     }
-  }, [clientes.length, itensPorPagina, paginaAtual])
+  }, [totalClientes, itensPorPagina, paginaAtual])
 
   const alterarItensPorPagina = (valor) => {
     setItensPorPagina(valor)
@@ -352,7 +354,7 @@ export default function Clientes() {
                   <div className="col-span-2 text-right">Ações</div>
                 </div>
 
-                {clientesPaginados.map((cliente, index) => (
+                {clientes.map((cliente, index) => (
                   <div
                     key={cliente.id}
                     className="grid grid-cols-12 gap-4 px-6 py-5 border-b border-gray-100 last:border-b-0"
@@ -415,7 +417,7 @@ export default function Clientes() {
 
               {/* Cards mobile/tablet */}
               <div className="xl:hidden p-4 space-y-4">
-                {clientesPaginados.map((cliente, index) => (
+                {clientes.map((cliente, index) => (
                   <div
                     key={cliente.id}
                     className="border border-gray-100 rounded-2xl p-4 shadow-sm"
@@ -478,7 +480,7 @@ export default function Clientes() {
               </div>
 
               <PaginacaoLista
-                total={clientes.length}
+                total={totalClientes}
                 pagina={paginaAtual}
                 porPagina={itensPorPagina}
                 onPaginaChange={setPaginaAtual}

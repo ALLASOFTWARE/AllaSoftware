@@ -1,6 +1,29 @@
 import prisma from "../config/prisma.js"
+import { getPaginationParams, montarRespostaPaginada } from "../utils/pagination.js"
 
 const statusPermitidosCliente = ["em_dia", "pendente", "inativo"]
+
+const montarResumoClientes = async (where, total) => {
+  const porStatus = await prisma.cliente.groupBy({
+    by: ["status"],
+    where,
+    _count: {
+      _all: true
+    }
+  })
+
+  const quantidadePorStatus = porStatus.reduce((acc, item) => {
+    acc[item.status] = item._count._all
+    return acc
+  }, {})
+
+  return {
+    total,
+    emDia: quantidadePorStatus.em_dia || 0,
+    pendentes: quantidadePorStatus.pendente || 0,
+    inativos: quantidadePorStatus.inativo || 0
+  }
+}
 
 // Criar cliente
 export const criarCliente = async (req, res) => {
@@ -49,6 +72,7 @@ export const criarCliente = async (req, res) => {
 export const listarClientes = async (req, res) => {
   try {
     const { busca, status, ordem } = req.query
+    const { temPaginacao, page, limit, skip } = getPaginationParams(req.query)
 
     const where = {
       empresaId: req.empresaId
@@ -65,12 +89,27 @@ export const listarClientes = async (req, res) => {
       where.status = status
     }
 
-    const clientes = await prisma.cliente.findMany({
+    const queryClientes = {
       where,
       orderBy: {
         nome: ordem === "desc" ? "desc" : "asc"
       }
-    })
+    }
+
+    if (temPaginacao) {
+      queryClientes.skip = skip
+      queryClientes.take = limit
+    }
+
+    const [clientes, total] = await Promise.all([
+      prisma.cliente.findMany(queryClientes),
+      temPaginacao ? prisma.cliente.count({ where }) : Promise.resolve(null)
+    ])
+
+    if (temPaginacao) {
+      const summary = await montarResumoClientes(where, total)
+      return res.json(montarRespostaPaginada({ data: clientes, total, page, limit, summary }))
+    }
 
     res.json(clientes)
   } catch (error) {

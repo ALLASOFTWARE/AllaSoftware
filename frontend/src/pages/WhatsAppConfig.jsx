@@ -3,6 +3,7 @@ import AppLayout from "../layouts/AppLayout"
 import api from "../services/api"
 import CampoInput from "../components/CampoInput"
 import ModalAviso from "../components/ModalAviso"
+import PaginacaoLista from "../components/PaginacaoLista"
 
 const vazio = {
   ativo: false,
@@ -33,6 +34,9 @@ export default function WhatsAppConfig() {
   const [form, setForm] = useState(vazio)
   const [mensagens, setMensagens] = useState([])
   const [usoMensal, setUsoMensal] = useState(usoVazio)
+  const [paginaMensagens, setPaginaMensagens] = useState(1)
+  const [mensagensPorPagina, setMensagensPorPagina] = useState(10)
+  const [totalMensagens, setTotalMensagens] = useState(0)
   const [telefoneTeste, setTelefoneTeste] = useState("")
   const [loading, setLoading] = useState(true)
   const [salvando, setSalvando] = useState(false)
@@ -42,13 +46,15 @@ export default function WhatsAppConfig() {
 
   useEffect(() => {
     carregar()
-  }, [])
+  }, [paginaMensagens, mensagensPorPagina])
 
   const carregar = async () => {
     try {
       const [configRes, mensagensRes] = await Promise.all([
         api.get("/whatsapp/config").catch(() => ({ data: null })),
-        api.get("/whatsapp/mensagens").catch(() => ({ data: [] }))
+        api
+          .get(`/whatsapp/mensagens?page=${paginaMensagens}&limit=${mensagensPorPagina}`)
+          .catch(() => ({ data: { data: [], pagination: { total: 0 } } }))
       ])
 
       if (configRes.data) {
@@ -63,7 +69,8 @@ export default function WhatsAppConfig() {
         setUsoMensal(uso || usoVazio)
       }
 
-      setMensagens(mensagensRes.data || [])
+      setMensagens(mensagensRes.data?.data || [])
+      setTotalMensagens(mensagensRes.data?.pagination?.total || 0)
     } catch (error) {
       console.error("Erro ao carregar WhatsApp:", error)
       setAviso({ titulo: "Erro", mensagem: "Nao foi possivel carregar a configuracao." })
@@ -270,32 +277,45 @@ export default function WhatsAppConfig() {
           {mensagens.length === 0 ? (
             <div className="p-5 text-sm text-gray-500">Nenhuma mensagem registrada.</div>
           ) : (
-            <div className="divide-y divide-gray-100">
-              {mensagens.map((mensagem) => (
-                <div key={mensagem.id} className="px-5 py-3 text-sm">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="font-medium text-[#2D2E47]">
-                      {mensagem.tipo} - {mensagem.destino}
+            <>
+              <div className="divide-y divide-gray-100">
+                {mensagens.map((mensagem) => (
+                  <div key={mensagem.id} className="px-5 py-3 text-sm">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-medium text-[#2D2E47]">
+                        {mensagem.tipo} - {mensagem.destino}
+                      </p>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                        mensagem.status === "enviado"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : mensagem.status === "erro" || mensagem.status === "bloqueado_limite"
+                            ? "bg-red-50 text-red-700"
+                            : "bg-gray-100 text-gray-600"
+                      }`}>
+                        {mensagem.status}
+                      </span>
+                    </div>
+                    <p className="text-gray-500 mt-1">
+                      {mensagem.cliente?.nome || "Sem cliente"} - {mensagem.templateName || "sem template"}
                     </p>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                      mensagem.status === "enviado"
-                        ? "bg-emerald-50 text-emerald-700"
-                        : mensagem.status === "erro"
-                          ? "bg-red-50 text-red-700"
-                          : "bg-gray-100 text-gray-600"
-                    }`}>
-                      {mensagem.status}
-                    </span>
+                    {mensagem.erro && (
+                      <p className="text-red-600 mt-1 break-words">{mensagem.erro}</p>
+                    )}
                   </div>
-                  <p className="text-gray-500 mt-1">
-                    {mensagem.cliente?.nome || "Sem cliente"} - {mensagem.templateName || "sem template"}
-                  </p>
-                  {mensagem.erro && (
-                    <p className="text-red-600 mt-1 break-words">{mensagem.erro}</p>
-                  )}
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+              <PaginacaoLista
+                total={totalMensagens}
+                pagina={paginaMensagens}
+                porPagina={mensagensPorPagina}
+                onPaginaChange={setPaginaMensagens}
+                onPorPaginaChange={(valor) => {
+                  setMensagensPorPagina(valor)
+                  setPaginaMensagens(1)
+                }}
+                rotulo="mensagem(ns)"
+              />
+            </>
           )}
         </div>
       </div>

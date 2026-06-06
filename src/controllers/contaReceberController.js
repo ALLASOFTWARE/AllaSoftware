@@ -1,5 +1,6 @@
 import prisma from "../config/prisma.js"
 import { gerarComprovantePagamentoConta, imprimirTermico } from "../services/comprovanteService.js"
+import { getPaginationParams, montarRespostaPaginada } from "../utils/pagination.js"
 
 const calcularStatusConta = (valorTotal, valorPago, vencimento) => {
   if (valorPago >= valorTotal) return "pago"
@@ -77,29 +78,68 @@ const atualizarStatusConta = async (contaId, empresaId) => {
 }
 
 const atualizarContasVencidasDaEmpresa = async (empresaId) => {
-  const contas = await prisma.contaReceber.findMany({
+  await prisma.contaReceber.updateMany({
     where: {
-      empresaId: empresaId
+      empresaId,
+      status: {
+        in: ["pendente", "parcial"]
+      },
+      vencimento: {
+        lt: new Date()
+      }
+    },
+    data: {
+      status: "vencido"
     }
   })
+}
 
-  for (const conta of contas) {
-    const novoStatus = calcularStatusConta(
-      conta.valorTotal,
-      conta.valorPago,
-      conta.vencimento
-    )
+const montarResumoContasReceber = async (where, total) => {
+  const statusEmAberto = ["pendente", "parcial", "vencido"]
+  const statusFiltro = where.status
+  const whereEmAberto = {
+    ...where,
+    status:
+      statusFiltro && statusEmAberto.includes(statusFiltro)
+        ? statusFiltro
+        : statusFiltro
+        ? "__sem_resultado__"
+        : {
+            in: statusEmAberto
+          }
+  }
 
-    if (conta.status !== novoStatus) {
-      await prisma.contaReceber.update({
-        where: {
-          id: conta.id
-        },
-        data: {
-          status: novoStatus
-        }
-      })
-    }
+  const [porStatus, valoresEmAberto] = await Promise.all([
+    prisma.contaReceber.groupBy({
+      by: ["status"],
+      where,
+      _count: {
+        _all: true
+      }
+    }),
+    prisma.contaReceber.aggregate({
+      where: whereEmAberto,
+      _sum: {
+        valorTotal: true,
+        valorPago: true
+      }
+    })
+  ])
+
+  const quantidadePorStatus = porStatus.reduce((acc, item) => {
+    acc[item.status] = item._count._all
+    return acc
+  }, {})
+
+  return {
+    total,
+    pendentes: quantidadePorStatus.pendente || 0,
+    parciais: quantidadePorStatus.parcial || 0,
+    vencidas: quantidadePorStatus.vencido || 0,
+    pagas: quantidadePorStatus.pago || 0,
+    totalEmAberto:
+      Number(valoresEmAberto._sum.valorTotal || 0) -
+      Number(valoresEmAberto._sum.valorPago || 0)
   }
 }
 
@@ -165,6 +205,7 @@ export const criarContaReceber = async (req, res) => {
 export const listarContasReceber = async (req, res) => {
   try {
     const { status, clienteId } = req.query
+    const { temPaginacao, page, limit, skip } = getPaginationParams(req.query)
     await atualizarContasVencidasDaEmpresa(req.empresaId)
     const where = {
       empresaId: req.empresaId
@@ -178,7 +219,7 @@ export const listarContasReceber = async (req, res) => {
       where.clienteId = Number(clienteId)
     }
 
-    const contas = await prisma.contaReceber.findMany({
+    const queryContas = {
       where,
       include: {
         cliente: true,
@@ -187,7 +228,22 @@ export const listarContasReceber = async (req, res) => {
       orderBy: {
         createdAt: "desc"
       }
-    })
+    }
+
+    if (temPaginacao) {
+      queryContas.skip = skip
+      queryContas.take = limit
+    }
+
+    const [contas, total] = await Promise.all([
+      prisma.contaReceber.findMany(queryContas),
+      temPaginacao ? prisma.contaReceber.count({ where }) : Promise.resolve(null)
+    ])
+
+    if (temPaginacao) {
+      const summary = await montarResumoContasReceber(where, total)
+      return res.json(montarRespostaPaginada({ data: contas, total, page, limit, summary }))
+    }
 
     res.json(contas)
   } catch (error) {
