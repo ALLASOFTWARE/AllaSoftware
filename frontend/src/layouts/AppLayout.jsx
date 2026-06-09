@@ -105,6 +105,7 @@ export default function AppLayout({ children }) {
 
   const logout = () => {
     localStorage.removeItem("token")
+    localStorage.removeItem("refreshToken")
     localStorage.removeItem("usuario")
     navigate("/")
   }

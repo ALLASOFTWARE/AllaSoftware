@@ -21,12 +21,13 @@ export default function Login() {
         senha
       })
 
-      const { accessToken, usuario } = response.data
+      const { accessToken, refreshToken, usuario } = response.data
 
       console.log("Login response:", response.data)
       console.log("AccessToken salvo:", accessToken)
 
       localStorage.setItem("token", accessToken)
+      localStorage.setItem("refreshToken", refreshToken)
       localStorage.setItem("usuario", JSON.stringify(usuario))
 
       window.location.href = "/dashboard"

@@ -159,6 +159,7 @@ export default function PlataformaEmpresas() {
 
   const sair = () => {
     localStorage.removeItem("token")
+    localStorage.removeItem("refreshToken")
     localStorage.removeItem("usuario")
     window.location.href = "/plataforma/login"
   }

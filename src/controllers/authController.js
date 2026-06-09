@@ -269,12 +269,47 @@ export const refreshAccessToken = async (req, res) => {
     }
 
     // Obter info do usuário
-    let role = "funcionario"
+    let role = "admin"
     if (decoded.usuarioId) {
       const usuario = await prisma.usuario.findUnique({
-        where: { id: decoded.usuarioId }
+        where: { id: decoded.usuarioId },
+        select: {
+          role: true,
+          status: true,
+          empresa: {
+            select: {
+              statusAssinatura: true
+            }
+          }
+        }
       })
-      role = usuario?.role || "funcionario"
+
+      if (!usuario || usuario.status !== "ativo") {
+        return res.status(403).json({
+          error: "Usuario desativado. Faca login novamente."
+        })
+      }
+
+      if (!["ativa", "teste"].includes(usuario.empresa?.statusAssinatura)) {
+        return res.status(403).json({
+          error: "A assinatura desta empresa nao esta ativa. Entre em contato com a AllaSoftware."
+        })
+      }
+
+      role = usuario.role || "funcionario"
+    } else {
+      const empresa = await prisma.empresa.findUnique({
+        where: { id: decoded.empresaId },
+        select: {
+          statusAssinatura: true
+        }
+      })
+
+      if (!empresa || !["ativa", "teste"].includes(empresa.statusAssinatura)) {
+        return res.status(403).json({
+          error: "A assinatura desta empresa nao esta ativa. Entre em contato com a AllaSoftware."
+        })
+      }
     }
 
     // Gerar novo access token
